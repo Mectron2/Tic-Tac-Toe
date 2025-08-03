@@ -1,6 +1,6 @@
 const gameField = document.querySelector('.game-field');
 const gameInfoStatus = document.querySelector('.game-info__status');
-const gameResetButton = document.querySelector('.game-info__reset');
+const gameResetButton = document.querySelector('.button_reset');
 
 class TicTacToe {
     generateWinningCombinations(fieldSize) {
@@ -46,7 +46,7 @@ class TicTacToe {
 
     constructor(fieldSize = 3) {
         this.board = Array(fieldSize * fieldSize).fill(null);
-        this.currentPlayer = 'X';
+        this.currentPlayer = 'x';
         this.WINNING_COMBINATIONS = this.generateWinningCombinations(fieldSize);
         this.generateGameField(fieldSize);
         this.isOver = false;
@@ -62,7 +62,7 @@ class TicTacToe {
         }
 
         this.board[position] = this.currentPlayer;
-        this.currentPlayer = this.currentPlayer === 'X' ? 'O' : 'X';
+        this.currentPlayer = this.currentPlayer === 'x' ? 'o' : 'x';
         return true;
     }
 
@@ -85,7 +85,7 @@ class TicTacToe {
 
     resetGame() {
         this.board.fill(null);
-        this.currentPlayer = 'X';
+        this.currentPlayer = 'x';
         this.isOver = false;
     }
 
@@ -94,23 +94,45 @@ class TicTacToe {
     }
 }
 
-const ticTacToe = new TicTacToe(5);
+const GAME_FIELD_SIZE = 3;
+const ticTacToe = new TicTacToe(GAME_FIELD_SIZE);
+gameField.style.gridTemplateColumns = `repeat(${GAME_FIELD_SIZE}, 1fr)`;
 const gameFieldCells = document.querySelectorAll('.game-field__cell');
+
+function addSymbolToCell(cell, player) {
+    cell.classList.add(`game-field__cell_active-${player}`);
+
+    const svgNamespace = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNamespace, "svg");
+    svg.setAttribute("width", "70%");
+    svg.setAttribute("height", "70%");
+    svg.setAttribute("fill", "currentColor");
+
+    const use = document.createElementNS(svgNamespace, "use");
+
+    use.setAttribute("href", `#icon-${player}`);
+
+    svg.appendChild(use);
+
+    cell.appendChild(svg);
+}
 
 function processGameField(cell) {
     const currentPlayer = ticTacToe.getCurrentPlayer();
     const move = ticTacToe.makeMove(Number(cell.dataset.index));
     if (move) {
-        cell.innerText = currentPlayer;
+        cell.classList.toggle('game-field__cell_active');
+        addSymbolToCell(cell, currentPlayer);
         gameInfoStatus.innerText = `Current Player: ${ticTacToe.getCurrentPlayer()}`;
         const winnerInfo = ticTacToe.checkWinner();
         if (winnerInfo) {
             if (winnerInfo.winner === 'Draw') {
                 gameInfoStatus.innerText = "It's a Draw!";
             } else {
-                gameInfoStatus.innerText = `Winner: ${winnerInfo.winner}`;
+                const winnerSymbol = winnerInfo.winner;
+                gameInfoStatus.innerText = `Winner: ${winnerSymbol}`;
                 winnerInfo.combination.forEach(index => {
-                    gameFieldCells[index].classList.add('game-field__cell_winner');
+                    gameFieldCells[index].classList.add(`game-field__cell_winner-${winnerSymbol}`);
                 });
             }
         }
@@ -121,7 +143,11 @@ function resetGame() {
     ticTacToe.resetGame();
     gameFieldCells.forEach(cell => {
         cell.innerText = '';
-        cell.classList.remove('game-field__cell_winner');
+        cell.classList.remove('game-field__cell_winner-x');
+        cell.classList.remove('game-field__cell_winner-o');
+        cell.classList.remove('game-field__cell_active');
+        cell.classList.remove('game-field__cell_active-x');
+        cell.classList.remove('game-field__cell_active-o');
     });
     gameInfoStatus.innerText = `Current Player: ${ticTacToe.getCurrentPlayer()}`;
 }
