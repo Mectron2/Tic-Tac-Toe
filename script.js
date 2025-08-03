@@ -1,6 +1,11 @@
 const gameField = document.querySelector('.game-field');
 const gameInfoStatus = document.querySelector('.game-info__status');
 const gameResetButton = document.querySelector('.button_reset');
+const xScore = document.querySelector('.game-score__rounds-count-x');
+const oScore = document.querySelector('.game-score__rounds-count-o');
+const drawScore = document.querySelector('.game-score__rounds-count-draw');
+
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
 class TicTacToe {
     generateWinningCombinations(fieldSize) {
@@ -94,21 +99,76 @@ class TicTacToe {
     }
 }
 
+function saveScore() {
+    const xScoreValue = parseInt(xScore.innerText);
+    const oScoreValue = parseInt(oScore.innerText);
+    const drawScoreValue = parseInt(drawScore.innerText);
+
+    localStorage.setItem('x-score', String(xScoreValue));
+    localStorage.setItem('o-score', String(oScoreValue));
+    localStorage.setItem('draw-score', String(drawScoreValue));
+}
+
+function syncScore() {
+    const xScoreValue = localStorage.getItem('x-score');
+    const oScoreValue = localStorage.getItem('o-score');
+    const drawScoreValue = localStorage.getItem('draw-score');
+
+    if (xScoreValue !== null) {
+        xScore.innerText = xScoreValue;
+    }
+    if (oScoreValue !== null) {
+        oScore.innerText = oScoreValue;
+    }
+    if (drawScoreValue !== null) {
+        drawScore.innerText = drawScoreValue;
+    }
+}
+
 const GAME_FIELD_SIZE = 3;
 const ticTacToe = new TicTacToe(GAME_FIELD_SIZE);
 gameField.style.gridTemplateColumns = `repeat(${GAME_FIELD_SIZE}, 1fr)`;
 const gameFieldCells = document.querySelectorAll('.game-field__cell');
 
+function initGameInfo() {
+    gameInfoStatus.innerText = '';
+    gameInfoStatus.classList.remove('game-info__status_turn-x', 'game-info__status_turn-o', 'game-info__status_draw');
+    gameInfoStatus.classList.add('game-info__status', 'game-info__status_turn-x');
+
+    const svg = document.createElementNS(SVG_NAMESPACE, 'svg');
+    svg.classList.add('game-info__status-player-icon');
+    svg.setAttribute('aria-hidden', 'true');
+
+    const text = document.createElement('p');
+    text.classList.add('game-info__text');
+    text.textContent = 'TURN';
+
+    gameInfoStatus.appendChild(svg);
+    gameInfoStatus.appendChild(text);
+}
+
+function addOrRemoveCurrentPlayerIcon(shouldRemove, player) {
+    const gameInfoCurrentPlayer = document.querySelector('.game-info__status-player-icon');
+
+    if (shouldRemove) {
+        gameInfoCurrentPlayer?.remove();
+    }
+
+    gameInfoCurrentPlayer.innerHTML = '';
+    const use = document.createElementNS(SVG_NAMESPACE, "use");
+    use.setAttribute("href", `#icon-${player}`);
+    gameInfoCurrentPlayer.appendChild(use);
+}
+
 function addSymbolToCell(cell, player) {
     cell.classList.add(`game-field__cell_active-${player}`);
 
-    const svgNamespace = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(svgNamespace, "svg");
+    const svg = document.createElementNS(SVG_NAMESPACE, "svg");
     svg.setAttribute("width", "70%");
     svg.setAttribute("height", "70%");
     svg.setAttribute("fill", "currentColor");
 
-    const use = document.createElementNS(svgNamespace, "use");
+    const use = document.createElementNS(SVG_NAMESPACE, "use");
 
     use.setAttribute("href", `#icon-${player}`);
 
@@ -118,23 +178,41 @@ function addSymbolToCell(cell, player) {
 }
 
 function processGameField(cell) {
+    const gameInfoText = document.querySelector('.game-info__text');
+
     const currentPlayer = ticTacToe.getCurrentPlayer();
+    const nextPlayer = currentPlayer === 'x' ? 'o' : 'x';
     const move = ticTacToe.makeMove(Number(cell.dataset.index));
     if (move) {
         cell.classList.toggle('game-field__cell_active');
+        addOrRemoveCurrentPlayerIcon(false, nextPlayer);
+        gameInfoStatus.classList.toggle('game-info__status_turn-x', nextPlayer === 'x');
+        gameInfoStatus.classList.toggle('game-info__status_turn-o', nextPlayer === 'o');
         addSymbolToCell(cell, currentPlayer);
-        gameInfoStatus.innerText = `Current Player: ${ticTacToe.getCurrentPlayer()}`;
         const winnerInfo = ticTacToe.checkWinner();
         if (winnerInfo) {
             if (winnerInfo.winner === 'Draw') {
-                gameInfoStatus.innerText = "It's a Draw!";
+                addOrRemoveCurrentPlayerIcon(true);
+                gameInfoStatus.classList.toggle('game-info__status_draw');
+                gameInfoText.innerText = "IT'S A DRAW";
+                drawScore.innerText = parseInt(drawScore.innerText) + 1;
             } else {
                 const winnerSymbol = winnerInfo.winner;
-                gameInfoStatus.innerText = `Winner: ${winnerSymbol}`;
+                addOrRemoveCurrentPlayerIcon(false, winnerSymbol);
+                gameInfoText.innerText = `WON`;
+                gameInfoStatus.classList.toggle('game-info__status_turn-x', winnerSymbol === 'x');
+                gameInfoStatus.classList.toggle('game-info__status_turn-o', winnerSymbol === 'o');
                 winnerInfo.combination.forEach(index => {
                     gameFieldCells[index].classList.add(`game-field__cell_winner-${winnerSymbol}`);
                 });
+
+                if (winnerSymbol === 'x') {
+                    xScore.innerText = parseInt(xScore.innerText) + 1;
+                } else {
+                    oScore.innerText = parseInt(oScore.innerText) + 1;
+                }
             }
+            saveScore();
         }
     }
 }
@@ -142,14 +220,15 @@ function processGameField(cell) {
 function resetGame() {
     ticTacToe.resetGame();
     gameFieldCells.forEach(cell => {
-        cell.innerText = '';
-        cell.classList.remove('game-field__cell_winner-x');
-        cell.classList.remove('game-field__cell_winner-o');
-        cell.classList.remove('game-field__cell_active');
-        cell.classList.remove('game-field__cell_active-x');
-        cell.classList.remove('game-field__cell_active-o');
+        cell.innerHTML = '';
+        cell.classList.remove('game-field__cell_winner-x',
+                                     'game-field__cell_winner-o',
+                                     'game-field__cell_active',
+                                     'game-field__cell_active-x',
+                                     'game-field__cell_active-o');
     });
-    gameInfoStatus.innerText = `Current Player: ${ticTacToe.getCurrentPlayer()}`;
+    initGameInfo();
+    addOrRemoveCurrentPlayerIcon(false, 'x');
 }
 
 gameFieldCells.forEach(cell => {
@@ -157,3 +236,5 @@ gameFieldCells.forEach(cell => {
 });
 
 gameResetButton.addEventListener('click', resetGame);
+
+window.addEventListener('DOMContentLoaded', syncScore);

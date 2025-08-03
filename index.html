@@ -33,7 +33,7 @@
                 </svg>
             </div>
             <div class="game-info__status game-info__status_turn-x">
-                <svg class="game-info__status-icon-x" aria-hidden="true">
+                <svg class="game-info__status-player-icon" aria-hidden="true">
                     <use href="#icon-x"></use>
                 </svg>
                 <p class="game-info__text">TURN</p>
@@ -46,6 +46,34 @@
         </div>
         <div class="game-field">
             <!-- Dynamically generated -->
+        </div>
+        <div class="game-score">
+            <ul class="game-score__list">
+                <li class="game-score__item game-score__item_x">
+                    <span class="game-score__player-icon-container">
+                        <svg class="game-score__player-icon" aria-hidden="true">
+                            <use href="#icon-x"></use>
+                        </svg>
+                    </span>
+                    <p class="game-score__rounds-count-x">0</p>
+                </li>
+
+                <li class="game-score__item game-score__item_draw">
+                    <span class="game-score__player-icon-container">
+                        DRAW
+                    </span>
+                    <p class="game-score__rounds-count-draw">0</p>
+                </li>
+
+                <li class="game-score__item game-score__item_o">
+                    <span class="game-score__player-icon-container">
+                        <svg class="game-score__player-icon" aria-hidden="true">
+                            <use href="#icon-o"></use>
+                        </svg>
+                    </span>
+                    <p class="game-score__rounds-count-o">0</p>
+                </li>
+            </ul>
         </div>
     </div>
 </body>
