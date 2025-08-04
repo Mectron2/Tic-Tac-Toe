@@ -198,3 +198,47 @@ body {
     transform: translateY(2px);
     box-shadow: inset 0 -2px 0 var(--btn-shadow);
 }
+
+.game__control {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 2rem;
+    border-radius: 40px;
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+.game__control__buttons {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.button__text {
+    font-weight: 900;
+}
+
+.game__control__buttons-button-container {
+    flex: 1;
+}
+
+.button_increase {
+    width: 100%;
+    background-color: var(--color-x);
+    box-shadow: inset 0 -4px 0 var(--shadow-win-x);
+}
+
+.button_decrease {
+    background-color: var(--color-o);
+    box-shadow: inset 0 -4px 0 var(--shadow-win-o);
+}
+
+.button_game-control {
+    width: 100%;
+}
