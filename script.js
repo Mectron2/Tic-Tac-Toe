@@ -278,8 +278,8 @@ function updateButtonStates() {
     DOM.increaseButton.disabled = isMax;
     DOM.decreaseButton.disabled = isMin;
 
-    DOM.increaseButton.classList.toggle(SELECTORS.buttonIncrease, !isMax);
-    DOM.decreaseButton.classList.toggle(SELECTORS.buttonDecrease, !isMin);
+    DOM.increaseButton.classList.toggle('button_increase', !isMax);
+    DOM.decreaseButton.classList.toggle('button_decrease', !isMin);
 }
 
 DOM.increaseButton.addEventListener('click', () => {

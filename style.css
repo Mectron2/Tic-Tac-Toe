@@ -250,3 +250,26 @@ body {
 .button_game-control {
     width: 100%;
 }
+
+@media (max-width: 650px) {
+    .game-field {
+        width: 90vmin;
+    }
+
+    .game__control {
+        padding: 0;
+        width: 100%;
+        position: relative;
+        right: 0;
+        top: 0;
+    }
+
+    .game__control__buttons-button-container {
+        width: 100%;
+    }
+
+    .game-score__player-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+}
