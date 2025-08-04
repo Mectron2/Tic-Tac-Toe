@@ -1,16 +1,16 @@
 :root {
-    --bg-page: #1a2a33;
-    --bg-cell: #1f3641;
+    --primary-color: #1a2a33;
+    --accent-color: #1f3641;
 
     --shadow-cell-inset: #10212a;
-    --shadow-win-o: #cc8b13;
-    --shadow-win-x: #218883;
+    --color-o-dark: #cc8b13;
+    --color-x-dark: #218883;
 
     --color-o: #F2B137;
     --color-x: #31C3BD;
 
-    --btn-shadow: #6b8997;
-    --btn-bg: #a8bfc9;
+    --gray: #6b8997;
+    --light-gray: #a8bfc9;
 
     font-weight: 700;
     font-family: outfit, sans-serif;
@@ -26,7 +26,7 @@ body {
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    background-color: var(--bg-page);
+    background-color: var(--primary-color);
 }
 
 .svg-icons {
@@ -49,23 +49,25 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-shrink: 0;
 }
 
 .game-field {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
+    width: min(60vmin, 60vw)
 }
 
 .game-field__cell {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 140px;
-    height: 140px;
+    aspect-ratio: 1 / 1;
+    width: 100%;
     font-size: 2rem;
     cursor: pointer;
-    background-color: var(--bg-cell);
+    background-color: var(--accent-color);
     border-radius: 15px;
     box-shadow: inset 0 -8px 0 var(--shadow-cell-inset);
     transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.1s ease;
@@ -86,14 +88,14 @@ body {
 
 .game-field__cell_winner-o {
     background-color: var(--color-o);
-    box-shadow: inset 0 -4px 0 var(--shadow-win-o);
-    color: var(--bg-page);
+    box-shadow: inset 0 -4px 0 var(--color-o-dark);
+    color: var(--primary-color);
 }
 
 .game-field__cell_winner-x {
     background-color: var(--color-x);
-    box-shadow: inset 0 -4px 0 var(--shadow-win-x);
-    color: var(--bg-page);
+    box-shadow: inset 0 -4px 0 var(--color-x-dark);
+    color: var(--primary-color);
 }
 
 .icon {
@@ -124,27 +126,32 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    color: var(--bg-page);
+    color: var(--primary-color);
 }
 
 .game-info__status_turn-x {
     background-color: var(--color-x);
-    box-shadow: inset 0 -4px 0 var(--shadow-win-x);
+    box-shadow: inset 0 -4px 0 var(--color-x-dark);
 }
 
 .game-info__status_turn-o {
     background-color: var(--color-o);
-    box-shadow: inset 0 -4px 0 var(--shadow-win-o);
+    box-shadow: inset 0 -4px 0 var(--color-o-dark);
 }
 
 .game-info__status_draw {
-    background-color: var(--btn-bg);
-    box-shadow: inset 0 -4px 0 var(--btn-shadow);
+    background-color: var(--light-gray);
+    box-shadow: inset 0 -4px 0 var(--gray);
+}
+
+.game-score {
+    width: 100%;
 }
 
 .game-score__list {
+    width: 100%;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     gap: 20px;
 }
 
@@ -158,26 +165,27 @@ body {
 }
 
 .game-score__item_x {
-    color: var(--bg-page);
+    color: var(--primary-color);
     background-color: var(--color-x);
-    box-shadow: inset 0 -4px 0 var(--shadow-win-x);
+    box-shadow: inset 0 -4px 0 var(--color-x-dark);
 }
 
 .game-score__item_o {
-    color: var(--bg-page);
+    color: var(--primary-color);
     background-color: var(--color-o);
-    box-shadow: inset 0 -4px 0 var(--shadow-win-o);
+    box-shadow: inset 0 -4px 0 var(--color-o-dark);
 }
 
 .game-score__item_draw {
-    color: var(--bg-page);
-    background-color: var(--btn-bg);
-    box-shadow: inset 0 -4px 0 var(--btn-shadow);
+    color: var(--primary-color);
+    background-color: var(--light-gray);
+    box-shadow: inset 0 -4px 0 var(--gray);
 }
 
 .game-score__player-icon {
-    width: 3rem;
-    height: 3rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
 }
 
 .button {
@@ -186,17 +194,17 @@ body {
     justify-content: center;
     padding: 0.9em;
     cursor: pointer;
-    background-color: var(--btn-bg);
-    color: var(--bg-page);
+    background-color: var(--light-gray);
+    color: var(--primary-color);
     border: none;
     border-radius: 10px;
-    box-shadow: inset 0 -4px 0 var(--btn-shadow);
+    box-shadow: inset 0 -4px 0 var(--gray);
     transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.1s ease;
 }
 
 .button:active {
     transform: translateY(2px);
-    box-shadow: inset 0 -2px 0 var(--btn-shadow);
+    box-shadow: inset 0 -2px 0 var(--gray);
 }
 
 .game__control {
@@ -231,12 +239,12 @@ body {
 .button_increase {
     width: 100%;
     background-color: var(--color-x);
-    box-shadow: inset 0 -4px 0 var(--shadow-win-x);
+    box-shadow: inset 0 -4px 0 var(--color-x-dark);
 }
 
 .button_decrease {
     background-color: var(--color-o);
-    box-shadow: inset 0 -4px 0 var(--shadow-win-o);
+    box-shadow: inset 0 -4px 0 var(--color-o-dark);
 }
 
 .button_game-control {

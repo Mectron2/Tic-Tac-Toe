@@ -1,5 +1,11 @@
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
+const SELECTORS = {
+    buttonIncrease: '.button_increase',
+    buttonDecrease: '.button_decrease',
+    gameFieldCell: '.game-field__cell',
+}
+
 const DOM = {
     gameField: document.querySelector('.game-field'),
     gameInfoStatus: document.querySelector('.game-info__status'),
@@ -7,11 +13,13 @@ const DOM = {
     oScore: document.querySelector('.game-score__rounds-count-o'),
     drawScore: document.querySelector('.game-score__rounds-count-draw'),
     resetButton: document.querySelector('.button_reset'),
-    increaseButton: document.querySelector('.button_increase'),
-    decreaseButton: document.querySelector('.button_decrease'),
+    increaseButton: document.querySelector(SELECTORS.buttonIncrease),
+    decreaseButton: document.querySelector(SELECTORS.buttonDecrease),
+
     get currentPlayerIcon() {
         return document.querySelector('.game-info__status-player-icon');
     },
+
     get infoText() {
         return document.querySelector('.game-info__text');
     }
@@ -160,7 +168,7 @@ function incrementScore(player) {
 }
 
 function highlightWinningCells(combo, winner) {
-    const cells = DOM.gameField.querySelectorAll('.game-field__cell');
+    const cells = DOM.gameField.querySelectorAll(SELECTORS.gameFieldCell);
     combo.forEach(i => cells[i].classList.add(`game-field__cell_winner-${winner}`));
 }
 
@@ -228,13 +236,13 @@ function renderGameField(size) {
     ticTacToe = new TicTacToe(size);
     ticTacToe.generateGameField(size);
 
-    const cells = DOM.gameField.querySelectorAll('.game-field__cell');
+    const cells = DOM.gameField.querySelectorAll(SELECTORS.gameFieldCell);
     cells.forEach(cell => cell.addEventListener('click', () => handleCellClick(cell)));
 }
 
 function resetGame() {
     ticTacToe.resetGame();
-    const cells = DOM.gameField.querySelectorAll('.game-field__cell');
+    const cells = DOM.gameField.querySelectorAll(SELECTORS.gameFieldCell);
     cells.forEach(cell => {
         cell.innerHTML = '';
         cell.classList.remove(
@@ -270,8 +278,8 @@ function updateButtonStates() {
     DOM.increaseButton.disabled = isMax;
     DOM.decreaseButton.disabled = isMin;
 
-    DOM.increaseButton.classList.toggle('button_increase', !isMax);
-    DOM.decreaseButton.classList.toggle('button_decrease', !isMin);
+    DOM.increaseButton.classList.toggle(SELECTORS.buttonIncrease, !isMax);
+    DOM.decreaseButton.classList.toggle(SELECTORS.buttonDecrease, !isMin);
 }
 
 DOM.increaseButton.addEventListener('click', () => {
