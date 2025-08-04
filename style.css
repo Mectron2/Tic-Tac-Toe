@@ -49,7 +49,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-shrink: 0;
 }
 
 .game-field {
@@ -155,6 +154,11 @@ body {
     gap: 20px;
 }
 
+.game-score__list:hover {
+    cursor: pointer;
+    filter: grayscale(100%) brightness(0.8);
+}
+
 .game-score__item {
     font-size: 32px;
     display: flex;
@@ -163,7 +167,7 @@ body {
     gap: 10px;
     padding: 0.5rem;
     border-radius: 10px;
-    flex-grow: 1;
+    flex: 1;
 }
 
 .game-score__item_x {
@@ -207,6 +211,14 @@ body {
 .button:active {
     transform: translateY(2px);
     box-shadow: inset 0 -2px 0 var(--gray);
+}
+
+.button_reset {
+    width: 73px;
+}
+
+.button:hover {
+    filter: brightness(1.2);
 }
 
 .game__control {

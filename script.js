@@ -15,6 +15,7 @@ const DOM = {
     resetButton: document.querySelector('.button_reset'),
     increaseButton: document.querySelector(SELECTORS.buttonIncrease),
     decreaseButton: document.querySelector(SELECTORS.buttonDecrease),
+    scoreList: document.querySelector('.game-score__list'),
 
     get currentPlayerIcon() {
         return document.querySelector('.game-info__status-player-icon');
@@ -127,6 +128,13 @@ function syncScore() {
     if (x !== null) DOM.xScore.innerText = x;
     if (o !== null) DOM.oScore.innerText = o;
     if (d !== null) DOM.drawScore.innerText = d;
+}
+
+function resetScore() {
+    DOM.xScore.innerText = '0';
+    DOM.oScore.innerText = '0';
+    DOM.drawScore.innerText = '0';
+    saveScore();
 }
 
 function updatePlayerIcon(player) {
@@ -300,3 +308,10 @@ DOM.decreaseButton.addEventListener('click', () => {
 
 DOM.resetButton.addEventListener('click', resetGame);
 window.addEventListener('DOMContentLoaded', syncScore);
+
+DOM.scoreList.addEventListener('click', () => {
+    const isConfirmed = confirm('Are you sure you want to reset the score?');
+    if (isConfirmed) {
+        resetScore();
+    }
+});
