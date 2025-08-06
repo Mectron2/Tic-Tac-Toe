@@ -1,11 +1,5 @@
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
-const SELECTORS = {
-    buttonIncrease: '.button_increase',
-    buttonDecrease: '.button_decrease',
-    gameFieldCell: '.game-field__cell',
-};
-
 const PLAYERS_SYMBOLS = {
     firstPlayerSymbol: 'x',
     secondPlayerSymbol: 'o',
@@ -18,9 +12,14 @@ const gameItems = {
     secondPlayerScore: document.querySelector('.game-score__rounds-count-o'),
     drawScore: document.querySelector('.game-score__rounds-count-draw'),
     resetButton: document.querySelector('.button_reset'),
-    increaseButton: document.querySelector(SELECTORS.buttonIncrease),
-    decreaseButton: document.querySelector(SELECTORS.buttonDecrease),
+    increaseButton: document.querySelector('.button_increase'),
+    decreaseButton: document.querySelector('.button_decrease'),
     scoreList: document.querySelector('.game-score__list'),
+    applyFieldSizeButton: document.querySelector('.button_apply-field-size'),
+
+    get fieldSizeInput() {
+        return document.querySelector('.game__control__field-size-input');
+    },
 
     get currentPlayerIcon() {
         return document.querySelector('.game-info__status-player-icon');
@@ -119,40 +118,112 @@ class TicTacToe {
         this.secondPlayer = secondPlayer;
         this.scoreBoard = scoreBoard;
         this.currentPlayer = this.firstPlayer;
-        this.WINNING_COMBINATIONS = this.generateWinningCombinations(fieldSize);
         this.isOver = false;
+
+        this.counts = {
+            [firstPlayer.getSymbol()]: {
+                rows: Array(fieldSize).fill(0),
+                cols: Array(fieldSize).fill(0),
+                diag: 0,
+                anti: 0,
+            },
+            [secondPlayer.getSymbol()]: {
+                rows: Array(fieldSize).fill(0),
+                cols: Array(fieldSize).fill(0),
+                diag: 0,
+                anti: 0,
+            },
+        };
     }
 
-    generateWinningCombinations(fieldSize) {
-        const horizontal = [];
-        for (let row = 0; row < fieldSize; row++) {
-            let combination = [];
-            for (let col = 0; col < fieldSize; col++) {
-                combination.push(row * fieldSize + col);
+    resetCounts() {
+        this.counts = {
+            [this.firstPlayer.getSymbol()]: {
+                rows: Array(this.fieldSize).fill(0),
+                cols: Array(this.fieldSize).fill(0),
+                diag: 0,
+                anti: 0,
+            },
+            [this.secondPlayer.getSymbol()]: {
+                rows: Array(this.fieldSize).fill(0),
+                cols: Array(this.fieldSize).fill(0),
+                diag: 0,
+                anti: 0,
+            },
+        };
+    }
+
+    _generateWinIndexesForRow(row) {
+        const size = this.fieldSize;
+        return Array.from({ length: size }, (_, col) => row * size + col);
+    }
+
+    _generateWinIndexesForCol(col) {
+        const size = this.fieldSize;
+        return Array.from({ length: size }, (_, row) => row * size + col);
+    }
+
+    _generateWinIndexesForDiag() {
+        const size = this.fieldSize;
+        return Array.from({ length: size }, (_, i) => i * (size + 1));
+    }
+
+    _generateWinIndexesForAntiDiag() {
+        const size = this.fieldSize;
+        return Array.from({ length: size }, (_, i) => (i + 1) * (size - 1));
+    }
+
+    checkForWin(position) {
+        const symbol = this.currentPlayer.getSymbol();
+        const counters = this.counts[symbol];
+        const size = this.fieldSize;
+
+        const row = Math.floor(position / size);
+        const col = position % size;
+
+        counters.rows[row]++;
+        counters.cols[col]++;
+        if (row === col) {
+            counters.diag++;
+        }
+
+        if (row + col === size - 1) {
+            counters.anti++;
+        }
+
+        const isRowWin = counters.rows[row] === size;
+        const isColWin = counters.cols[col] === size;
+        const isDiagWin = counters.diag === size;
+        const isAntiWin = counters.anti === size;
+
+        if (isRowWin || isColWin || isDiagWin || isAntiWin) {
+            let combo;
+
+            if (isRowWin) {
+                combo = this._generateWinIndexesForRow(row);
             }
-            horizontal.push(combination);
-        }
-
-        const vertical = [];
-        for (let col = 0; col < fieldSize; col++) {
-            let combination = [];
-            for (let row = 0; row < fieldSize; row++) {
-                combination.push(row * fieldSize + col);
+            if (isColWin) {
+                combo = this._generateWinIndexesForCol(col);
             }
-            vertical.push(combination);
+            if (isDiagWin) {
+                combo = this._generateWinIndexesForDiag();
+            }
+            if (isAntiWin) {
+                combo = this._generateWinIndexesForAntiDiag();
+            }
+
+            this.isOver = true;
+            this.scoreBoard.incrementPlayerScore(this.currentPlayer);
+            return { winner: this.currentPlayer, combination: combo };
         }
 
-        const mainDiagonal = [];
-        for (let i = 0; i < fieldSize; i++) {
-            mainDiagonal.push(i * fieldSize + i);
+        if (!this.board.includes(null)) {
+            this.isOver = true;
+            this.scoreBoard.incrementDrawScore();
+            return { winner: 'Draw', combination: null };
         }
 
-        const secondaryDiagonal = [];
-        for (let i = 0; i < fieldSize; i++) {
-            secondaryDiagonal.push((i + 1) * (fieldSize - 1));
-        }
-
-        return [...horizontal, ...vertical, mainDiagonal, secondaryDiagonal];
+        return null;
     }
 
     makeMove(position) {
@@ -171,51 +242,34 @@ class TicTacToe {
         }
 
         this.board[position] = this.currentPlayer;
+
+        const winResult = this.checkForWin(position);
+
+        if (winResult) {
+            return winResult;
+        }
+
         this.currentPlayer =
             this.currentPlayer === this.firstPlayer
                 ? this.secondPlayer
                 : this.firstPlayer;
     }
 
-    checkWinner() {
-        for (const combo of this.WINNING_COMBINATIONS) {
-            const firstPlayerInCombo = this.board[combo[0]];
-
-            if (
-                firstPlayerInCombo &&
-                combo.every(
-                    (comboIndex) =>
-                        this.board[comboIndex] === firstPlayerInCombo
-                )
-            ) {
-                this.isOver = true;
-                this.scoreBoard.incrementPlayerScore(firstPlayerInCombo);
-
-                return {
-                    winner: firstPlayerInCombo,
-                    combination: combo,
-                };
-            }
-        }
-
-        if (this.board.every((cell) => cell !== null)) {
-            this.isOver = true;
-            this.scoreBoard.incrementDrawScore();
-
-            return { winner: 'Draw', combination: null };
-        }
-
-        return null;
-    }
-
     resetGame() {
         this.board.fill(null);
         this.currentPlayer = this.firstPlayer;
         this.isOver = false;
+        this.resetCounts();
     }
 
     getCurrentPlayer() {
         return this.currentPlayer;
+    }
+}
+
+class LocalStorageManager {
+    constructor(scoreBoard) {
+        this.scoreBoard = scoreBoard;
     }
 
     saveScores() {
@@ -241,8 +295,6 @@ class TicTacToe {
             drawScore: drawCount,
         });
 
-        console.log(scoreBoard);
-
         this.scoreBoard.setScores(firstScore, secondScore, drawCount);
     }
 
@@ -253,9 +305,10 @@ class TicTacToe {
 }
 
 class GameUI {
-    constructor(ticTacToe, gameItems) {
+    constructor(ticTacToe, gameItems, localStorageManager) {
         this.gameItems = gameItems;
         this.ticTacToe = ticTacToe;
+        this.localStorageManager = localStorageManager;
     }
 
     syncScoresUI() {
@@ -342,9 +395,8 @@ class GameUI {
     }
 
     highlightWinningCells(combo, winner) {
-        const cells = this.gameItems.gameField.querySelectorAll(
-            SELECTORS.gameFieldCell
-        );
+        const cells =
+            this.gameItems.gameField.querySelectorAll('.game-field__cell');
 
         combo.forEach((cellIndex) =>
             cells[cellIndex].classList.add(
@@ -392,7 +444,7 @@ class GameUI {
             this.incrementScoreUI(result.winner);
         }
 
-        this.ticTacToe.saveScores();
+        this.localStorageManager.saveScores();
     }
 
     handleCellClick(cell) {
@@ -402,8 +454,10 @@ class GameUI {
                 ? this.ticTacToe.secondPlayer
                 : this.ticTacToe.firstPlayer;
 
+        let winResult;
+
         try {
-            this.ticTacToe.makeMove(Number(cell.dataset.index));
+            winResult = this.ticTacToe.makeMove(Number(cell.dataset.index));
         } catch (error) {
             if (error instanceof WrongMoveError) {
                 console.log(error.message);
@@ -417,9 +471,7 @@ class GameUI {
         this.updatePlayerIcon(nextPlayer);
         this.updateStatusUI(nextPlayer);
 
-        const result = this.ticTacToe.checkWinner();
-
-        if (result) this.handleGameEnd(result);
+        if (winResult) this.handleGameEnd(winResult);
     }
 
     initGameInfo() {
@@ -447,11 +499,10 @@ class GameUI {
             scoreBoard
         );
 
-        this.generateGameField(size);
+        this.generateGameField(this.ticTacToe.fieldSize);
 
-        const cells = this.gameItems.gameField.querySelectorAll(
-            SELECTORS.gameFieldCell
-        );
+        const cells =
+            this.gameItems.gameField.querySelectorAll('.game-field__cell');
 
         cells.forEach((cell) =>
             cell.addEventListener('click', () => this.handleCellClick(cell))
@@ -460,9 +511,8 @@ class GameUI {
 
     resetGameUI() {
         this.ticTacToe.resetGame();
-        const cells = this.gameItems.gameField.querySelectorAll(
-            SELECTORS.gameFieldCell
-        );
+        const cells =
+            this.gameItems.gameField.querySelectorAll('.game-field__cell');
 
         cells.forEach((cell) => {
             cell.innerHTML = '';
@@ -488,34 +538,48 @@ class GameUI {
     }
 }
 
+let gameFieldSize = 3;
+
 const firstPlayer = new Player(PLAYERS_SYMBOLS.firstPlayerSymbol);
 const secondPlayer = new Player(PLAYERS_SYMBOLS.secondPlayerSymbol);
+
 const scoreBoard = new ScoreBoard(firstPlayer, secondPlayer);
-let GAME_FIELD_SIZE = 3;
-let ticTacToe = new TicTacToe(
-    GAME_FIELD_SIZE,
+const ticTacToe = new TicTacToe(
+    gameFieldSize,
     firstPlayer,
     secondPlayer,
     scoreBoard
 );
-let gameUI = new GameUI(ticTacToe, gameItems);
+const localStorageManager = new LocalStorageManager(scoreBoard);
+const gameUI = new GameUI(ticTacToe, gameItems, localStorageManager);
 
 gameUI.initializeGame();
 gameUI.updateButtonStates();
 
 gameItems.increaseButton.addEventListener('click', () => {
-    if (GAME_FIELD_SIZE < 7) {
-        GAME_FIELD_SIZE++;
-        gameUI.initializeGame(GAME_FIELD_SIZE);
+    if (gameFieldSize < 7) {
+        gameFieldSize++;
+        gameUI.initializeGame(gameFieldSize);
         gameUI.updateButtonStates();
     }
 });
 
 gameItems.decreaseButton.addEventListener('click', () => {
-    if (GAME_FIELD_SIZE > 3) {
-        GAME_FIELD_SIZE--;
-        gameUI.initializeGame(GAME_FIELD_SIZE);
+    if (gameFieldSize > 3) {
+        gameFieldSize--;
+        gameUI.initializeGame(gameFieldSize);
         gameUI.updateButtonStates();
+    }
+});
+
+gameItems.applyFieldSizeButton.addEventListener('click', () => {
+    const inputValue = parseInt(gameItems.fieldSizeInput.value, 10);
+    if (inputValue >= 3 && inputValue <= 100) {
+        gameFieldSize = inputValue;
+        gameUI.initializeGame(gameFieldSize);
+        gameUI.updateButtonStates();
+    } else {
+        alert('Please enter a field size between 3 and 100.');
     }
 });
 
@@ -524,14 +588,14 @@ gameItems.resetButton.addEventListener('click', () => {
 });
 
 window.addEventListener('DOMContentLoaded', () => {
-    ticTacToe.syncScores();
+    localStorageManager.syncScores();
     gameUI.syncScoresUI(ticTacToe);
 });
 
 gameItems.scoreList.addEventListener('click', () => {
     const isConfirmed = confirm('Are you sure you want to reset the score?');
     if (isConfirmed) {
-        ticTacToe.resetScores();
+        localStorageManager.resetScores();
         gameUI.resetScoresUI();
     }
 });
