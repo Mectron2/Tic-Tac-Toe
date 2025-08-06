@@ -6,9 +6,9 @@ const SELECTORS = {
     gameFieldCell: '.game-field__cell',
 };
 
-const PLAYERS = {
-    firstPlayer: 'x',
-    secondPlayer: 'o',
+const PLAYERS_SYMBOLS = {
+    firstPlayerSymbol: 'x',
+    secondPlayerSymbol: 'o',
 };
 
 const gameItems = {
@@ -31,10 +31,87 @@ const gameItems = {
     },
 };
 
+class Player {
+    constructor(symbol) {
+        this.symbol = symbol;
+        this.score = 0;
+    }
+
+    getScore() {
+        return this.score;
+    }
+
+    getSymbol() {
+        return this.symbol;
+    }
+
+    incrementScore() {
+        this.score++;
+    }
+
+    resetScore() {
+        this.score = 0;
+    }
+
+    setScore(score) {
+        this.score = score;
+    }
+}
+
+class ScoreBoard {
+    constructor(firstPlayer, secondPlayer) {
+        this.firstPlayer = firstPlayer;
+        this.secondPlayer = secondPlayer;
+        this.drawScore = 0;
+    }
+
+    incrementPlayerScore(player) {
+        if (player === this.firstPlayer) {
+            this.firstPlayer.incrementScore();
+        } else if (player === this.secondPlayer) {
+            this.secondPlayer.incrementScore();
+        }
+    }
+
+    incrementDrawScore() {
+        this.drawScore++;
+    }
+
+    resetScores() {
+        this.firstPlayer.resetScore();
+        this.secondPlayer.resetScore();
+        this.drawScore = 0;
+    }
+
+    setScores(firstPlayerScore, secondPlayerScore, drawScore) {
+        this.firstPlayer.setScore(firstPlayerScore);
+        this.secondPlayer.setScore(secondPlayerScore);
+        this.drawScore = drawScore;
+    }
+
+    getScores() {
+        console.log('Getting scores:', {
+            firstPlayerScore: this.firstPlayer.getScore(),
+            secondPlayerScore: this.secondPlayer.getScore(),
+            drawScore: this.drawScore,
+        });
+
+        return {
+            firstPlayerScore: this.firstPlayer.getScore(),
+            secondPlayerScore: this.secondPlayer.getScore(),
+            drawScore: this.drawScore,
+        };
+    }
+}
+
+const firstPlayer = new Player(PLAYERS_SYMBOLS.firstPlayerSymbol, 0);
+const secondPlayer = new Player(PLAYERS_SYMBOLS.secondPlayerSymbol, 0);
+const scoreBoard = new ScoreBoard(firstPlayer, secondPlayer);
+
 class TicTacToe {
     constructor(fieldSize = 3) {
         this.board = Array(fieldSize ** 2).fill(null);
-        this.currentPlayer = PLAYERS.firstPlayer;
+        this.currentPlayer = firstPlayer;
         this.WINNING_COMBINATIONS = this.generateWinningCombinations(fieldSize);
         this.isOver = false;
     }
@@ -94,32 +171,35 @@ class TicTacToe {
 
         this.board[position] = this.currentPlayer;
         this.currentPlayer =
-            this.currentPlayer === PLAYERS.firstPlayer
-                ? PLAYERS.secondPlayer
-                : PLAYERS.firstPlayer;
+            this.currentPlayer === firstPlayer ? secondPlayer : firstPlayer;
 
         return true;
     }
 
     checkWinner() {
         for (const combo of this.WINNING_COMBINATIONS) {
-            const firstPlayerSymbolInCombo = this.board[combo[0]];
+            const firstPlayerInCombo = this.board[combo[0]];
 
             if (
-                firstPlayerSymbolInCombo &&
+                firstPlayerInCombo &&
                 combo.every(
                     (comboIndex) =>
-                        this.board[comboIndex] === firstPlayerSymbolInCombo
+                        this.board[comboIndex] === firstPlayerInCombo
                 )
             ) {
                 this.isOver = true;
+                scoreBoard.incrementPlayerScore(firstPlayerInCombo);
 
-                return { winner: firstPlayerSymbolInCombo, combination: combo };
+                return {
+                    winner: firstPlayerInCombo,
+                    combination: combo,
+                };
             }
         }
 
         if (this.board.every((cell) => cell !== null)) {
             this.isOver = true;
+            scoreBoard.incrementDrawScore();
 
             return { winner: 'Draw', combination: null };
         }
@@ -129,7 +209,7 @@ class TicTacToe {
 
     resetGame() {
         this.board.fill(null);
-        this.currentPlayer = PLAYERS.firstPlayer;
+        this.currentPlayer = firstPlayer;
         this.isOver = false;
     }
 
@@ -139,33 +219,34 @@ class TicTacToe {
 }
 
 function saveScore() {
-    localStorage.setItem(
-        'firstPlayerScore',
-        gameItems.firstPlayerScore.innerText
-    );
-    localStorage.setItem(
-        'secondPlayerScore',
-        gameItems.secondPlayerScore.innerText
-    );
-    localStorage.setItem('drawScore', gameItems.drawScore.innerText);
+    const scores = scoreBoard.getScores();
+
+    localStorage.setItem('firstPlayerScore', scores.firstPlayerScore);
+    localStorage.setItem('secondPlayerScore', scores.secondPlayerScore);
+    localStorage.setItem('drawScore', scores.drawScore);
 }
 
 function syncScore() {
-    const firstPlayerScore = localStorage.getItem('firstPlayerScore');
-    const secondPlayerScore = localStorage.getItem('secondPlayerScore');
-    const drawScore = localStorage.getItem('drawScore');
+    const rawFirst = localStorage.getItem('firstPlayerScore');
+    const rawSecond = localStorage.getItem('secondPlayerScore');
+    const rawDraw = localStorage.getItem('drawScore');
 
-    if (firstPlayerScore !== null)
-        gameItems.firstPlayerScore.innerText = firstPlayerScore;
-    if (secondPlayerScore !== null)
-        gameItems.secondPlayerScore.innerText = secondPlayerScore;
-    if (drawScore !== null) gameItems.drawScore.innerText = drawScore;
+    const firstScore = rawFirst !== null ? parseInt(rawFirst, 10) : 0;
+    const secondScore = rawSecond !== null ? parseInt(rawSecond, 10) : 0;
+    const drawCount = rawDraw !== null ? parseInt(rawDraw, 10) : 0;
+
+    scoreBoard.setScores(firstScore, secondScore, drawCount);
+
+    gameItems.firstPlayerScore.innerText = firstScore;
+    gameItems.secondPlayerScore.innerText = secondScore;
+    gameItems.drawScore.innerText = drawCount;
 }
 
 function resetScore() {
     gameItems.firstPlayerScore.innerText = '0';
     gameItems.secondPlayerScore.innerText = '0';
     gameItems.drawScore.innerText = '0';
+    scoreBoard.resetScores();
     saveScore();
 }
 
@@ -181,7 +262,7 @@ function updatePlayerIcon(player) {
     }
 
     const svgUseElement = document.createElementNS(SVG_NAMESPACE, 'use');
-    svgUseElement.setAttribute('href', `#icon-${player}`);
+    svgUseElement.setAttribute('href', `#icon-${player.getSymbol()}`);
     icon.appendChild(svgUseElement);
 }
 
@@ -193,8 +274,8 @@ function updateStatusUI(player, isWin = false) {
         'game-info__status_draw'
     );
 
-    if (player === PLAYERS.firstPlayer || player === PLAYERS.secondPlayer) {
-        status.classList.add(`game-info__status_turn-${player}`);
+    if (player === firstPlayer || player === secondPlayer) {
+        status.classList.add(`game-info__status_turn-${player.getSymbol()}`);
         isWin
             ? (gameItems.infoText.innerText = 'WON')
             : (gameItems.infoText.innerText = 'TURN');
@@ -204,11 +285,11 @@ function updateStatusUI(player, isWin = false) {
     }
 }
 
-function incrementScore(player) {
-    if (player === PLAYERS.firstPlayer) {
+function incrementScoreUI(player) {
+    if (player === firstPlayer) {
         gameItems.firstPlayerScore.innerText =
             parseInt(gameItems.firstPlayerScore.innerText) + 1;
-    } else if (player === PLAYERS.secondPlayer) {
+    } else if (player === secondPlayer) {
         gameItems.secondPlayerScore.innerText =
             parseInt(gameItems.secondPlayerScore.innerText) + 1;
     } else {
@@ -221,14 +302,16 @@ function highlightWinningCells(combo, winner) {
     const cells = gameItems.gameField.querySelectorAll(SELECTORS.gameFieldCell);
 
     combo.forEach((cellIndex) =>
-        cells[cellIndex].classList.add(`game-field__cell_winner-${winner}`)
+        cells[cellIndex].classList.add(
+            `game-field__cell_winner-${winner.getSymbol()}`
+        )
     );
 }
 
 function renderMove(cell, player) {
     cell.classList.add(
         'game-field__cell_active',
-        `game-field__cell_active-${player}`
+        `game-field__cell_active-${player.getSymbol()}`
     );
 
     const svg = document.createElementNS(SVG_NAMESPACE, 'svg');
@@ -237,7 +320,7 @@ function renderMove(cell, player) {
     svg.setAttribute('fill', 'currentColor');
 
     const svgUseElement = document.createElementNS(SVG_NAMESPACE, 'use');
-    svgUseElement.setAttribute('href', `#icon-${player}`);
+    svgUseElement.setAttribute('href', `#icon-${player.getSymbol()}`);
     svg.appendChild(svgUseElement);
 
     cell.appendChild(svg);
@@ -247,12 +330,12 @@ function handleGameEnd(result) {
     if (result.winner === 'Draw') {
         updatePlayerIcon(null);
         updateStatusUI('draw');
-        incrementScore('draw');
+        incrementScoreUI('draw');
     } else {
         updatePlayerIcon(result.winner);
         updateStatusUI(result.winner, true);
         highlightWinningCells(result.combination, result.winner);
-        incrementScore(result.winner);
+        incrementScoreUI(result.winner);
     }
 
     saveScore();
@@ -261,9 +344,7 @@ function handleGameEnd(result) {
 function handleCellClick(cell) {
     const currentPlayer = ticTacToe.getCurrentPlayer();
     const nextPlayer =
-        currentPlayer === PLAYERS.firstPlayer
-            ? PLAYERS.secondPlayer
-            : PLAYERS.firstPlayer;
+        currentPlayer === firstPlayer ? secondPlayer : firstPlayer;
 
     if (!ticTacToe.makeMove(Number(cell.dataset.index))) return;
 
@@ -318,15 +399,15 @@ function resetGame() {
     });
 
     initGameInfo();
-    updatePlayerIcon(PLAYERS.firstPlayer);
-    updateStatusUI(PLAYERS.firstPlayer);
+    updatePlayerIcon(firstPlayer);
+    updateStatusUI(firstPlayer);
 }
 
 function initializeGame() {
     renderGameField(GAME_FIELD_SIZE);
     initGameInfo();
-    updatePlayerIcon(PLAYERS.firstPlayer);
-    updateStatusUI(PLAYERS.firstPlayer);
+    updatePlayerIcon(firstPlayer);
+    updateStatusUI(firstPlayer);
 }
 
 let GAME_FIELD_SIZE = 3;
