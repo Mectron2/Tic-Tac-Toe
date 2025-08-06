@@ -104,12 +104,16 @@ class ScoreBoard {
     }
 }
 
-const firstPlayer = new Player(PLAYERS_SYMBOLS.firstPlayerSymbol, 0);
-const secondPlayer = new Player(PLAYERS_SYMBOLS.secondPlayerSymbol, 0);
-const scoreBoard = new ScoreBoard(firstPlayer, secondPlayer);
+class WrongMoveError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'WrongMoveError';
+    }
+}
 
 class TicTacToe {
     constructor(fieldSize = 3, firstPlayer, secondPlayer, scoreBoard) {
+        this.fieldSize = fieldSize;
         this.board = Array(fieldSize ** 2).fill(null);
         this.firstPlayer = firstPlayer;
         this.secondPlayer = secondPlayer;
@@ -151,25 +155,19 @@ class TicTacToe {
         return [...horizontal, ...vertical, mainDiagonal, secondaryDiagonal];
     }
 
-    generateGameField(fieldSize) {
-        for (let i = 0; i < fieldSize ** 2; i++) {
-            const cell = document.createElement('div');
-            cell.classList.add('game-field__cell');
-            cell.dataset.index = String(i);
-            gameItems.gameField.appendChild(cell);
-        }
-    }
-
     makeMove(position) {
         const maxIndex = this.board.length - 1;
 
-        if (
-            this.board[position] !== null ||
-            position < 0 ||
-            position > maxIndex ||
-            this.isOver
-        ) {
-            return false;
+        if (this.board[position] !== null) {
+            throw new WrongMoveError('Cell is already occupied.');
+        }
+
+        if (position < 0 || position > maxIndex) {
+            throw new WrongMoveError('Index out of bounds.');
+        }
+
+        if (this.isOver) {
+            throw new WrongMoveError('Game is already over.');
         }
 
         this.board[position] = this.currentPlayer;
@@ -177,8 +175,6 @@ class TicTacToe {
             this.currentPlayer === this.firstPlayer
                 ? this.secondPlayer
                 : this.firstPlayer;
-
-        return true;
     }
 
     checkWinner() {
@@ -256,179 +252,245 @@ class TicTacToe {
     }
 }
 
-function syncScoresUI(ticTacToeInstance) {
-    const scores = ticTacToeInstance.scoreBoard.getScores();
-    gameItems.firstPlayerScore.innerText = scores.firstPlayerScore;
-    gameItems.secondPlayerScore.innerText = scores.secondPlayerScore;
-    gameItems.drawScore.innerText = scores.drawScore;
-}
-
-function resetScoresUI() {
-    gameItems.firstPlayerScore.innerText = '0';
-    gameItems.secondPlayerScore.innerText = '0';
-    gameItems.drawScore.innerText = '0';
-}
-
-function updatePlayerIcon(player) {
-    const icon = gameItems.currentPlayerIcon;
-    if (!icon) return;
-
-    icon.innerHTML = '';
-
-    if (!player) {
-        icon.remove();
-        return;
+class GameUI {
+    constructor(ticTacToe, gameItems) {
+        this.gameItems = gameItems;
+        this.ticTacToe = ticTacToe;
     }
 
-    const svgUseElement = document.createElementNS(SVG_NAMESPACE, 'use');
-    svgUseElement.setAttribute('href', `#icon-${player.getSymbol()}`);
-    icon.appendChild(svgUseElement);
-}
-
-function updateStatusUI(player, isWin = false) {
-    const status = gameItems.gameInfoStatus;
-    status.classList.remove(
-        'game-info__status_turn-x',
-        'game-info__status_turn-o',
-        'game-info__status_draw'
-    );
-
-    if (player === firstPlayer || player === secondPlayer) {
-        status.classList.add(`game-info__status_turn-${player.getSymbol()}`);
-        isWin
-            ? (gameItems.infoText.innerText = 'WON')
-            : (gameItems.infoText.innerText = 'TURN');
-    } else {
-        status.classList.add('game-info__status_draw');
-        gameItems.infoText.innerText = `IT'S A DRAW`;
-    }
-}
-
-function incrementScoreUI(player) {
-    if (player === firstPlayer) {
-        gameItems.firstPlayerScore.innerText =
-            parseInt(gameItems.firstPlayerScore.innerText) + 1;
-    } else if (player === secondPlayer) {
-        gameItems.secondPlayerScore.innerText =
-            parseInt(gameItems.secondPlayerScore.innerText) + 1;
-    } else {
-        gameItems.drawScore.innerText =
-            parseInt(gameItems.drawScore.innerText) + 1;
-    }
-}
-
-function highlightWinningCells(combo, winner) {
-    const cells = gameItems.gameField.querySelectorAll(SELECTORS.gameFieldCell);
-
-    combo.forEach((cellIndex) =>
-        cells[cellIndex].classList.add(
-            `game-field__cell_winner-${winner.getSymbol()}`
-        )
-    );
-}
-
-function renderMove(cell, player) {
-    cell.classList.add(
-        'game-field__cell_active',
-        `game-field__cell_active-${player.getSymbol()}`
-    );
-
-    const svg = document.createElementNS(SVG_NAMESPACE, 'svg');
-    svg.setAttribute('width', '70%');
-    svg.setAttribute('height', '70%');
-    svg.setAttribute('fill', 'currentColor');
-
-    const svgUseElement = document.createElementNS(SVG_NAMESPACE, 'use');
-    svgUseElement.setAttribute('href', `#icon-${player.getSymbol()}`);
-    svg.appendChild(svgUseElement);
-
-    cell.appendChild(svg);
-}
-
-function handleGameEnd(result, ticTacToeInstance) {
-    if (result.winner === 'Draw') {
-        updatePlayerIcon(null);
-        updateStatusUI('draw');
-        incrementScoreUI('draw');
-    } else {
-        updatePlayerIcon(result.winner);
-        updateStatusUI(result.winner, true);
-        highlightWinningCells(result.combination, result.winner);
-        incrementScoreUI(result.winner);
+    syncScoresUI() {
+        const scores = this.ticTacToe.scoreBoard.getScores();
+        this.gameItems.firstPlayerScore.innerText = scores.firstPlayerScore;
+        this.gameItems.secondPlayerScore.innerText = scores.secondPlayerScore;
+        this.gameItems.drawScore.innerText = scores.drawScore;
     }
 
-    ticTacToeInstance.saveScores();
-}
+    resetScoresUI() {
+        this.gameItems.firstPlayerScore.innerText = '0';
+        this.gameItems.secondPlayerScore.innerText = '0';
+        this.gameItems.drawScore.innerText = '0';
+    }
 
-function handleCellClick(cell) {
-    const currentPlayer = ticTacToe.getCurrentPlayer();
-    const nextPlayer =
-        currentPlayer === firstPlayer ? secondPlayer : firstPlayer;
+    updatePlayerIcon(player) {
+        const icon = this.gameItems.currentPlayerIcon;
+        if (!icon) return;
 
-    if (!ticTacToe.makeMove(Number(cell.dataset.index))) return;
+        icon.innerHTML = '';
 
-    renderMove(cell, currentPlayer);
-    updatePlayerIcon(nextPlayer);
-    updateStatusUI(nextPlayer);
+        if (!player) {
+            icon.remove();
+            return;
+        }
 
-    const result = ticTacToe.checkWinner();
+        const svgUseElement = document.createElementNS(SVG_NAMESPACE, 'use');
+        svgUseElement.setAttribute('href', `#icon-${player.getSymbol()}`);
+        icon.appendChild(svgUseElement);
+    }
 
-    if (result) handleGameEnd(result, ticTacToe);
-}
-
-function initGameInfo() {
-    gameItems.gameInfoStatus.innerHTML = '';
-
-    const svg = document.createElementNS(SVG_NAMESPACE, 'svg');
-    svg.classList.add('game-info__status-player-icon');
-    svg.setAttribute('aria-hidden', 'true');
-
-    const text = document.createElement('p');
-    text.classList.add('game-info__text');
-    text.textContent = 'TURN';
-
-    gameItems.gameInfoStatus.appendChild(svg);
-    gameItems.gameInfoStatus.appendChild(text);
-}
-
-function renderGameField(size) {
-    gameItems.gameField.innerHTML = '';
-    gameItems.gameField.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-    ticTacToe = new TicTacToe(size, firstPlayer, secondPlayer, scoreBoard);
-    ticTacToe.generateGameField(size);
-
-    const cells = gameItems.gameField.querySelectorAll(SELECTORS.gameFieldCell);
-    cells.forEach((cell) =>
-        cell.addEventListener('click', () => handleCellClick(cell))
-    );
-}
-
-function resetGame() {
-    ticTacToe.resetGame();
-    const cells = gameItems.gameField.querySelectorAll(SELECTORS.gameFieldCell);
-    cells.forEach((cell) => {
-        cell.innerHTML = '';
-        cell.classList.remove(
-            'game-field__cell_active',
-            'game-field__cell_active-x',
-            'game-field__cell_active-o',
-            'game-field__cell_winner-x',
-            'game-field__cell_winner-o'
+    updateStatusUI(player, isWin = false) {
+        const status = this.gameItems.gameInfoStatus;
+        status.classList.remove(
+            'game-info__status_turn-x',
+            'game-info__status_turn-o',
+            'game-info__status_draw'
         );
-    });
 
-    initGameInfo();
-    updatePlayerIcon(firstPlayer);
-    updateStatusUI(firstPlayer);
+        if (
+            player === ticTacToe.firstPlayer ||
+            player === ticTacToe.secondPlayer
+        ) {
+            status.classList.add(
+                `game-info__status_turn-${player.getSymbol()}`
+            );
+            isWin
+                ? (this.gameItems.infoText.innerText = 'WON')
+                : (this.gameItems.infoText.innerText = 'TURN');
+        } else {
+            status.classList.add('game-info__status_draw');
+            this.gameItems.infoText.innerText = `IT'S A DRAW`;
+        }
+    }
+
+    incrementScoreUI(player) {
+        if (player === this.ticTacToe.firstPlayer) {
+            this.gameItems.firstPlayerScore.innerText =
+                parseInt(this.gameItems.firstPlayerScore.innerText) + 1;
+        } else if (player === this.ticTacToe.secondPlayer) {
+            this.gameItems.secondPlayerScore.innerText =
+                parseInt(this.gameItems.secondPlayerScore.innerText) + 1;
+        } else {
+            this.gameItems.drawScore.innerText =
+                parseInt(this.gameItems.drawScore.innerText) + 1;
+        }
+    }
+
+    updateButtonStates() {
+        const isMax = this.ticTacToe.fieldSize >= 7;
+        const isMin = this.ticTacToe.fieldSize <= 3;
+
+        this.gameItems.increaseButton.disabled = isMax;
+        this.gameItems.decreaseButton.disabled = isMin;
+
+        this.gameItems.increaseButton.classList.toggle(
+            'button_increase',
+            !isMax
+        );
+        this.gameItems.decreaseButton.classList.toggle(
+            'button_decrease',
+            !isMin
+        );
+    }
+
+    highlightWinningCells(combo, winner) {
+        const cells = this.gameItems.gameField.querySelectorAll(
+            SELECTORS.gameFieldCell
+        );
+
+        combo.forEach((cellIndex) =>
+            cells[cellIndex].classList.add(
+                `game-field__cell_winner-${winner.getSymbol()}`
+            )
+        );
+    }
+
+    generateGameField(fieldSize) {
+        for (let i = 0; i < fieldSize ** 2; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('game-field__cell');
+            cell.dataset.index = String(i);
+            this.gameItems.gameField.appendChild(cell);
+        }
+    }
+
+    renderMove(cell, player) {
+        cell.classList.add(
+            'game-field__cell_active',
+            `game-field__cell_active-${player.getSymbol()}`
+        );
+
+        const svg = document.createElementNS(SVG_NAMESPACE, 'svg');
+        svg.setAttribute('width', '70%');
+        svg.setAttribute('height', '70%');
+        svg.setAttribute('fill', 'currentColor');
+
+        const svgUseElement = document.createElementNS(SVG_NAMESPACE, 'use');
+        svgUseElement.setAttribute('href', `#icon-${player.getSymbol()}`);
+        svg.appendChild(svgUseElement);
+
+        cell.appendChild(svg);
+    }
+
+    handleGameEnd(result) {
+        if (result.winner === 'Draw') {
+            this.updatePlayerIcon(null);
+            this.updateStatusUI('draw');
+            this.incrementScoreUI('draw');
+        } else {
+            this.updatePlayerIcon(result.winner);
+            this.updateStatusUI(result.winner, true);
+            this.highlightWinningCells(result.combination, result.winner);
+            this.incrementScoreUI(result.winner);
+        }
+
+        this.ticTacToe.saveScores();
+    }
+
+    handleCellClick(cell) {
+        const currentPlayer = this.ticTacToe.getCurrentPlayer();
+        const nextPlayer =
+            currentPlayer === this.ticTacToe.firstPlayer
+                ? this.ticTacToe.secondPlayer
+                : this.ticTacToe.firstPlayer;
+
+        try {
+            this.ticTacToe.makeMove(Number(cell.dataset.index));
+        } catch (error) {
+            if (error instanceof WrongMoveError) {
+                console.log(error.message);
+                return;
+            } else {
+                throw error;
+            }
+        }
+
+        this.renderMove(cell, currentPlayer);
+        this.updatePlayerIcon(nextPlayer);
+        this.updateStatusUI(nextPlayer);
+
+        const result = this.ticTacToe.checkWinner();
+
+        if (result) this.handleGameEnd(result);
+    }
+
+    initGameInfo() {
+        this.gameItems.gameInfoStatus.innerHTML = '';
+
+        const svg = document.createElementNS(SVG_NAMESPACE, 'svg');
+        svg.classList.add('game-info__status-player-icon');
+        svg.setAttribute('aria-hidden', 'true');
+
+        const text = document.createElement('p');
+        text.classList.add('game-info__text');
+        text.textContent = 'TURN';
+
+        this.gameItems.gameInfoStatus.appendChild(svg);
+        this.gameItems.gameInfoStatus.appendChild(text);
+    }
+
+    renderGameField(size) {
+        this.gameItems.gameField.innerHTML = '';
+        this.gameItems.gameField.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+        this.ticTacToe = new TicTacToe(
+            size,
+            firstPlayer,
+            secondPlayer,
+            scoreBoard
+        );
+
+        this.generateGameField(size);
+
+        const cells = this.gameItems.gameField.querySelectorAll(
+            SELECTORS.gameFieldCell
+        );
+
+        cells.forEach((cell) =>
+            cell.addEventListener('click', () => this.handleCellClick(cell))
+        );
+    }
+
+    resetGameUI() {
+        this.ticTacToe.resetGame();
+        const cells = this.gameItems.gameField.querySelectorAll(
+            SELECTORS.gameFieldCell
+        );
+
+        cells.forEach((cell) => {
+            cell.innerHTML = '';
+            cell.classList.remove(
+                'game-field__cell_active',
+                'game-field__cell_active-x',
+                'game-field__cell_active-o',
+                'game-field__cell_winner-x',
+                'game-field__cell_winner-o'
+            );
+        });
+
+        this.initGameInfo();
+        this.updatePlayerIcon(this.ticTacToe.firstPlayer);
+        this.updateStatusUI(this.ticTacToe.firstPlayer);
+    }
+
+    initializeGame(fieldSize = this.ticTacToe.fieldSize) {
+        this.renderGameField(fieldSize);
+        this.initGameInfo();
+        this.updatePlayerIcon(this.ticTacToe.firstPlayer);
+        this.updateStatusUI(this.ticTacToe.firstPlayer);
+    }
 }
 
-function initializeGame() {
-    renderGameField(GAME_FIELD_SIZE);
-    initGameInfo();
-    updatePlayerIcon(firstPlayer);
-    updateStatusUI(firstPlayer);
-}
-
+const firstPlayer = new Player(PLAYERS_SYMBOLS.firstPlayerSymbol);
+const secondPlayer = new Player(PLAYERS_SYMBOLS.secondPlayerSymbol);
+const scoreBoard = new ScoreBoard(firstPlayer, secondPlayer);
 let GAME_FIELD_SIZE = 3;
 let ticTacToe = new TicTacToe(
     GAME_FIELD_SIZE,
@@ -436,46 +498,40 @@ let ticTacToe = new TicTacToe(
     secondPlayer,
     scoreBoard
 );
-initializeGame();
-updateButtonStates();
+let gameUI = new GameUI(ticTacToe, gameItems);
 
-function updateButtonStates() {
-    const isMax = GAME_FIELD_SIZE >= 7;
-    const isMin = GAME_FIELD_SIZE <= 3;
-
-    gameItems.increaseButton.disabled = isMax;
-    gameItems.decreaseButton.disabled = isMin;
-
-    gameItems.increaseButton.classList.toggle('button_increase', !isMax);
-    gameItems.decreaseButton.classList.toggle('button_decrease', !isMin);
-}
+gameUI.initializeGame();
+gameUI.updateButtonStates();
 
 gameItems.increaseButton.addEventListener('click', () => {
     if (GAME_FIELD_SIZE < 7) {
         GAME_FIELD_SIZE++;
-        initializeGame();
-        updateButtonStates();
+        gameUI.initializeGame(GAME_FIELD_SIZE);
+        gameUI.updateButtonStates();
     }
 });
 
 gameItems.decreaseButton.addEventListener('click', () => {
     if (GAME_FIELD_SIZE > 3) {
         GAME_FIELD_SIZE--;
-        initializeGame();
-        updateButtonStates();
+        gameUI.initializeGame(GAME_FIELD_SIZE);
+        gameUI.updateButtonStates();
     }
 });
 
-gameItems.resetButton.addEventListener('click', resetGame);
+gameItems.resetButton.addEventListener('click', () => {
+    gameUI.resetGameUI();
+});
+
 window.addEventListener('DOMContentLoaded', () => {
     ticTacToe.syncScores();
-    syncScoresUI(ticTacToe);
+    gameUI.syncScoresUI(ticTacToe);
 });
 
 gameItems.scoreList.addEventListener('click', () => {
     const isConfirmed = confirm('Are you sure you want to reset the score?');
     if (isConfirmed) {
         ticTacToe.resetScores();
-        resetScoresUI();
+        gameUI.resetScoresUI();
     }
 });
