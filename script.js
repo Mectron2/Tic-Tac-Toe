@@ -413,12 +413,16 @@ class GameUI {
     }
 
     generateGameField(fieldSize) {
+        const fieldFragment = document.createDocumentFragment();
+
         for (let i = 0; i < fieldSize ** 2; i++) {
             const cell = document.createElement('div');
             cell.classList.add('game-field__cell');
             cell.dataset.index = String(i);
-            this.gameItems.gameField.appendChild(cell);
+            fieldFragment.appendChild(cell);
         }
+
+        this.gameItems.gameField.appendChild(fieldFragment);
     }
 
     renderMove(cell, player) {
@@ -508,12 +512,12 @@ class GameUI {
 
         this.generateGameField(this.ticTacToe.fieldSize);
 
-        const cells =
-            this.gameItems.gameField.querySelectorAll('.game-field__cell');
-
-        cells.forEach((cell) =>
-            cell.addEventListener('click', () => this.handleCellClick(cell))
-        );
+        this.gameItems.gameField.addEventListener('click', (event) => {
+            const cell = event.target.closest('.game-field__cell');
+            if (cell) {
+                this.handleCellClick(cell);
+            }
+        });
     }
 
     resetGameUI() {
