@@ -1,16 +1,21 @@
-const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
 const SELECTORS = {
     buttonIncrease: '.button_increase',
     buttonDecrease: '.button_decrease',
     gameFieldCell: '.game-field__cell',
-}
+};
 
-const DOM = {
+const PLAYERS = {
+    firstPlayer: 'x',
+    secondPlayer: 'o',
+};
+
+const gameItems = {
     gameField: document.querySelector('.game-field'),
     gameInfoStatus: document.querySelector('.game-info__status'),
-    xScore: document.querySelector('.game-score__rounds-count-x'),
-    oScore: document.querySelector('.game-score__rounds-count-o'),
+    firstPlayerScore: document.querySelector('.game-score__rounds-count-x'),
+    secondPlayerScore: document.querySelector('.game-score__rounds-count-o'),
     drawScore: document.querySelector('.game-score__rounds-count-draw'),
     resetButton: document.querySelector('.button_reset'),
     increaseButton: document.querySelector(SELECTORS.buttonIncrease),
@@ -23,13 +28,13 @@ const DOM = {
 
     get infoText() {
         return document.querySelector('.game-info__text');
-    }
+    },
 };
 
 class TicTacToe {
     constructor(fieldSize = 3) {
         this.board = Array(fieldSize ** 2).fill(null);
-        this.currentPlayer = 'x';
+        this.currentPlayer = PLAYERS.firstPlayer;
         this.WINNING_COMBINATIONS = this.generateWinningCombinations(fieldSize);
         this.isOver = false;
     }
@@ -71,32 +76,51 @@ class TicTacToe {
             const cell = document.createElement('div');
             cell.classList.add('game-field__cell');
             cell.dataset.index = String(i);
-            DOM.gameField.appendChild(cell);
+            gameItems.gameField.appendChild(cell);
         }
     }
 
     makeMove(position) {
         const maxIndex = this.board.length - 1;
-        if (this.board[position] !== null || position < 0 || position > maxIndex || this.isOver) {
+
+        if (
+            this.board[position] !== null ||
+            position < 0 ||
+            position > maxIndex ||
+            this.isOver
+        ) {
             return false;
         }
 
         this.board[position] = this.currentPlayer;
-        this.currentPlayer = this.currentPlayer === 'x' ? 'o' : 'x';
+        this.currentPlayer =
+            this.currentPlayer === PLAYERS.firstPlayer
+                ? PLAYERS.secondPlayer
+                : PLAYERS.firstPlayer;
+
         return true;
     }
 
     checkWinner() {
         for (const combo of this.WINNING_COMBINATIONS) {
-            const first = this.board[combo[0]];
-            if (first && combo.every(idx => this.board[idx] === first)) {
+            const firstPlayerSymbolInCombo = this.board[combo[0]];
+
+            if (
+                firstPlayerSymbolInCombo &&
+                combo.every(
+                    (comboIndex) =>
+                        this.board[comboIndex] === firstPlayerSymbolInCombo
+                )
+            ) {
                 this.isOver = true;
-                return { winner: first, combination: combo };
+
+                return { winner: firstPlayerSymbolInCombo, combination: combo };
             }
         }
 
-        if (this.board.every(cell => cell !== null)) {
+        if (this.board.every((cell) => cell !== null)) {
             this.isOver = true;
+
             return { winner: 'Draw', combination: null };
         }
 
@@ -105,7 +129,7 @@ class TicTacToe {
 
     resetGame() {
         this.board.fill(null);
-        this.currentPlayer = 'x';
+        this.currentPlayer = PLAYERS.firstPlayer;
         this.isOver = false;
     }
 
@@ -115,82 +139,106 @@ class TicTacToe {
 }
 
 function saveScore() {
-    localStorage.setItem('x-score', DOM.xScore.innerText);
-    localStorage.setItem('o-score', DOM.oScore.innerText);
-    localStorage.setItem('draw-score', DOM.drawScore.innerText);
+    localStorage.setItem(
+        'firstPlayerScore',
+        gameItems.firstPlayerScore.innerText
+    );
+    localStorage.setItem(
+        'secondPlayerScore',
+        gameItems.secondPlayerScore.innerText
+    );
+    localStorage.setItem('drawScore', gameItems.drawScore.innerText);
 }
 
 function syncScore() {
-    const x = localStorage.getItem('x-score');
-    const o = localStorage.getItem('o-score');
-    const d = localStorage.getItem('draw-score');
+    const firstPlayerScore = localStorage.getItem('firstPlayerScore');
+    const secondPlayerScore = localStorage.getItem('secondPlayerScore');
+    const drawScore = localStorage.getItem('drawScore');
 
-    if (x !== null) DOM.xScore.innerText = x;
-    if (o !== null) DOM.oScore.innerText = o;
-    if (d !== null) DOM.drawScore.innerText = d;
+    if (firstPlayerScore !== null)
+        gameItems.firstPlayerScore.innerText = firstPlayerScore;
+    if (secondPlayerScore !== null)
+        gameItems.secondPlayerScore.innerText = secondPlayerScore;
+    if (drawScore !== null) gameItems.drawScore.innerText = drawScore;
 }
 
 function resetScore() {
-    DOM.xScore.innerText = '0';
-    DOM.oScore.innerText = '0';
-    DOM.drawScore.innerText = '0';
+    gameItems.firstPlayerScore.innerText = '0';
+    gameItems.secondPlayerScore.innerText = '0';
+    gameItems.drawScore.innerText = '0';
     saveScore();
 }
 
 function updatePlayerIcon(player) {
-    const icon = DOM.currentPlayerIcon;
+    const icon = gameItems.currentPlayerIcon;
     if (!icon) return;
 
     icon.innerHTML = '';
+
     if (!player) {
         icon.remove();
         return;
     }
 
-    const use = document.createElementNS(SVG_NAMESPACE, 'use');
-    use.setAttribute('href', `#icon-${player}`);
-    icon.appendChild(use);
+    const svgUseElement = document.createElementNS(SVG_NAMESPACE, 'use');
+    svgUseElement.setAttribute('href', `#icon-${player}`);
+    icon.appendChild(svgUseElement);
 }
 
 function updateStatusUI(player, isWin = false) {
-    const status = DOM.gameInfoStatus;
-    status.classList.remove('game-info__status_turn-x', 'game-info__status_turn-o', 'game-info__status_draw');
+    const status = gameItems.gameInfoStatus;
+    status.classList.remove(
+        'game-info__status_turn-x',
+        'game-info__status_turn-o',
+        'game-info__status_draw'
+    );
 
-    if (player === 'x' || player === 'o') {
+    if (player === PLAYERS.firstPlayer || player === PLAYERS.secondPlayer) {
         status.classList.add(`game-info__status_turn-${player}`);
-        if (isWin) {
-            DOM.infoText.innerText = 'WON';
-        } else {
-            DOM.infoText.innerText = 'TURN';
-        }
+        isWin
+            ? (gameItems.infoText.innerText = 'WON')
+            : (gameItems.infoText.innerText = 'TURN');
     } else {
         status.classList.add('game-info__status_draw');
-        DOM.infoText.innerText = `IT'S A DRAW`;
+        gameItems.infoText.innerText = `IT'S A DRAW`;
     }
 }
 
 function incrementScore(player) {
-    if (player === 'x') DOM.xScore.innerText = parseInt(DOM.xScore.innerText) + 1;
-    else if (player === 'o') DOM.oScore.innerText = parseInt(DOM.oScore.innerText) + 1;
-    else DOM.drawScore.innerText = parseInt(DOM.drawScore.innerText) + 1;
+    if (player === PLAYERS.firstPlayer) {
+        gameItems.firstPlayerScore.innerText =
+            parseInt(gameItems.firstPlayerScore.innerText) + 1;
+    } else if (player === PLAYERS.secondPlayer) {
+        gameItems.secondPlayerScore.innerText =
+            parseInt(gameItems.secondPlayerScore.innerText) + 1;
+    } else {
+        gameItems.drawScore.innerText =
+            parseInt(gameItems.drawScore.innerText) + 1;
+    }
 }
 
 function highlightWinningCells(combo, winner) {
-    const cells = DOM.gameField.querySelectorAll(SELECTORS.gameFieldCell);
-    combo.forEach(i => cells[i].classList.add(`game-field__cell_winner-${winner}`));
+    const cells = gameItems.gameField.querySelectorAll(SELECTORS.gameFieldCell);
+
+    combo.forEach((cellIndex) =>
+        cells[cellIndex].classList.add(`game-field__cell_winner-${winner}`)
+    );
 }
 
 function renderMove(cell, player) {
-    cell.classList.add('game-field__cell_active', `game-field__cell_active-${player}`);
+    cell.classList.add(
+        'game-field__cell_active',
+        `game-field__cell_active-${player}`
+    );
 
     const svg = document.createElementNS(SVG_NAMESPACE, 'svg');
     svg.setAttribute('width', '70%');
     svg.setAttribute('height', '70%');
     svg.setAttribute('fill', 'currentColor');
 
-    const use = document.createElementNS(SVG_NAMESPACE, 'use');
-    use.setAttribute('href', `#icon-${player}`);
-    svg.appendChild(use);
+    const svgUseElement = document.createElementNS(SVG_NAMESPACE, 'use');
+    svgUseElement.setAttribute('href', `#icon-${player}`);
+    svg.appendChild(svgUseElement);
 
     cell.appendChild(svg);
 }
@@ -206,12 +254,16 @@ function handleGameEnd(result) {
         highlightWinningCells(result.combination, result.winner);
         incrementScore(result.winner);
     }
+
     saveScore();
 }
 
 function handleCellClick(cell) {
     const currentPlayer = ticTacToe.getCurrentPlayer();
-    const nextPlayer = currentPlayer === 'x' ? 'o' : 'x';
+    const nextPlayer =
+        currentPlayer === PLAYERS.firstPlayer
+            ? PLAYERS.secondPlayer
+            : PLAYERS.firstPlayer;
 
     if (!ticTacToe.makeMove(Number(cell.dataset.index))) return;
 
@@ -220,11 +272,12 @@ function handleCellClick(cell) {
     updateStatusUI(nextPlayer);
 
     const result = ticTacToe.checkWinner();
+
     if (result) handleGameEnd(result);
 }
 
 function initGameInfo() {
-    DOM.gameInfoStatus.innerHTML = '';
+    gameItems.gameInfoStatus.innerHTML = '';
 
     const svg = document.createElementNS(SVG_NAMESPACE, 'svg');
     svg.classList.add('game-info__status-player-icon');
@@ -234,24 +287,26 @@ function initGameInfo() {
     text.classList.add('game-info__text');
     text.textContent = 'TURN';
 
-    DOM.gameInfoStatus.appendChild(svg);
-    DOM.gameInfoStatus.appendChild(text);
+    gameItems.gameInfoStatus.appendChild(svg);
+    gameItems.gameInfoStatus.appendChild(text);
 }
 
 function renderGameField(size) {
-    DOM.gameField.innerHTML = '';
-    DOM.gameField.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+    gameItems.gameField.innerHTML = '';
+    gameItems.gameField.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
     ticTacToe = new TicTacToe(size);
     ticTacToe.generateGameField(size);
 
-    const cells = DOM.gameField.querySelectorAll(SELECTORS.gameFieldCell);
-    cells.forEach(cell => cell.addEventListener('click', () => handleCellClick(cell)));
+    const cells = gameItems.gameField.querySelectorAll(SELECTORS.gameFieldCell);
+    cells.forEach((cell) =>
+        cell.addEventListener('click', () => handleCellClick(cell))
+    );
 }
 
 function resetGame() {
     ticTacToe.resetGame();
-    const cells = DOM.gameField.querySelectorAll(SELECTORS.gameFieldCell);
-    cells.forEach(cell => {
+    const cells = gameItems.gameField.querySelectorAll(SELECTORS.gameFieldCell);
+    cells.forEach((cell) => {
         cell.innerHTML = '';
         cell.classList.remove(
             'game-field__cell_active',
@@ -263,15 +318,15 @@ function resetGame() {
     });
 
     initGameInfo();
-    updatePlayerIcon('x');
-    updateStatusUI('x');
+    updatePlayerIcon(PLAYERS.firstPlayer);
+    updateStatusUI(PLAYERS.firstPlayer);
 }
 
 function initializeGame() {
     renderGameField(GAME_FIELD_SIZE);
     initGameInfo();
-    updatePlayerIcon('x');
-    updateStatusUI('x');
+    updatePlayerIcon(PLAYERS.firstPlayer);
+    updateStatusUI(PLAYERS.firstPlayer);
 }
 
 let GAME_FIELD_SIZE = 3;
@@ -283,14 +338,14 @@ function updateButtonStates() {
     const isMax = GAME_FIELD_SIZE >= 7;
     const isMin = GAME_FIELD_SIZE <= 3;
 
-    DOM.increaseButton.disabled = isMax;
-    DOM.decreaseButton.disabled = isMin;
+    gameItems.increaseButton.disabled = isMax;
+    gameItems.decreaseButton.disabled = isMin;
 
-    DOM.increaseButton.classList.toggle('button_increase', !isMax);
-    DOM.decreaseButton.classList.toggle('button_decrease', !isMin);
+    gameItems.increaseButton.classList.toggle('button_increase', !isMax);
+    gameItems.decreaseButton.classList.toggle('button_decrease', !isMin);
 }
 
-DOM.increaseButton.addEventListener('click', () => {
+gameItems.increaseButton.addEventListener('click', () => {
     if (GAME_FIELD_SIZE < 7) {
         GAME_FIELD_SIZE++;
         initializeGame();
@@ -298,7 +353,7 @@ DOM.increaseButton.addEventListener('click', () => {
     }
 });
 
-DOM.decreaseButton.addEventListener('click', () => {
+gameItems.decreaseButton.addEventListener('click', () => {
     if (GAME_FIELD_SIZE > 3) {
         GAME_FIELD_SIZE--;
         initializeGame();
@@ -306,10 +361,10 @@ DOM.decreaseButton.addEventListener('click', () => {
     }
 });
 
-DOM.resetButton.addEventListener('click', resetGame);
+gameItems.resetButton.addEventListener('click', resetGame);
 window.addEventListener('DOMContentLoaded', syncScore);
 
-DOM.scoreList.addEventListener('click', () => {
+gameItems.scoreList.addEventListener('click', () => {
     const isConfirmed = confirm('Are you sure you want to reset the score?');
     if (isConfirmed) {
         resetScore();
