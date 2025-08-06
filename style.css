@@ -266,6 +266,10 @@ html, body {
 }
 
 @media (max-width: 650px) {
+    .game-field {
+        width: 90vmin;
+    }
+
     .game-score__player-icon {
         width: 1.5rem;
         height: 1.5rem;
