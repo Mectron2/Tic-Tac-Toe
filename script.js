@@ -6,16 +6,16 @@ const PLAYERS_SYMBOLS = {
 };
 
 const gameItems = {
+    page: document.querySelector('.page'),
     gameField: document.querySelector('.game-field'),
     gameInfoStatus: document.querySelector('.game-info__status'),
     firstPlayerScore: document.querySelector('.game-score__rounds-count-x'),
     secondPlayerScore: document.querySelector('.game-score__rounds-count-o'),
     drawScore: document.querySelector('.game-score__rounds-count-draw'),
     resetButton: document.querySelector('.button_reset'),
-    increaseButton: document.querySelector('.button_increase'),
-    decreaseButton: document.querySelector('.button_decrease'),
     scoreList: document.querySelector('.game-score__list'),
     applyFieldSizeButton: document.querySelector('.button_apply-field-size'),
+    game: document.querySelector('.game'),
 
     get fieldSizeInput() {
         return document.querySelector('.game__control__field-size-input');
@@ -89,12 +89,6 @@ class ScoreBoard {
     }
 
     getScores() {
-        console.log('Getting scores:', {
-            firstPlayerScore: this.firstPlayer.getScore(),
-            secondPlayerScore: this.secondPlayer.getScore(),
-            drawScore: this.drawScore,
-        });
-
         return {
             firstPlayerScore: this.firstPlayer.getScore(),
             secondPlayerScore: this.secondPlayer.getScore(),
@@ -244,10 +238,6 @@ class TicTacToe {
 
         this.board[position] = this.currentPlayer;
         this.emptyCells--;
-        console.log(
-            `Player ${this.currentPlayer.getSymbol()} made a move at position ${position}`
-        );
-        console.log('Empty cells left:', this.emptyCells);
 
         const winResult = this.checkForWin(position);
 
@@ -295,12 +285,6 @@ class LocalStorageManager {
         const firstScore = rawFirst !== null ? parseInt(rawFirst, 10) : 0;
         const secondScore = rawSecond !== null ? parseInt(rawSecond, 10) : 0;
         const drawCount = rawDraw !== null ? parseInt(rawDraw, 10) : 0;
-
-        console.log('Syncing scores:', {
-            firstPlayerScore: firstScore,
-            secondPlayerScore: secondScore,
-            drawScore: drawCount,
-        });
 
         this.scoreBoard.setScores(firstScore, secondScore, drawCount);
     }
@@ -384,23 +368,6 @@ class GameUI {
         }
     }
 
-    updateButtonStates() {
-        const isMax = this.ticTacToe.fieldSize >= 7;
-        const isMin = this.ticTacToe.fieldSize <= 3;
-
-        this.gameItems.increaseButton.disabled = isMax;
-        this.gameItems.decreaseButton.disabled = isMin;
-
-        this.gameItems.increaseButton.classList.toggle(
-            'button_increase',
-            !isMax
-        );
-        this.gameItems.decreaseButton.classList.toggle(
-            'button_decrease',
-            !isMin
-        );
-    }
-
     highlightWinningCells(combo, winner) {
         const cells =
             this.gameItems.gameField.querySelectorAll('.game-field__cell');
@@ -417,7 +384,10 @@ class GameUI {
 
         for (let i = 0; i < fieldSize ** 2; i++) {
             const cell = document.createElement('div');
-            cell.classList.add('game-field__cell');
+            cell.classList.add(
+                'game-field__cell',
+                this.ticTacToe.fieldSize > 10 ? 'game-field__cell_large' : null
+            );
             cell.dataset.index = String(i);
             fieldFragment.appendChild(cell);
         }
@@ -427,7 +397,7 @@ class GameUI {
 
     renderMove(cell, player) {
         cell.classList.add(
-            'game-field__cell_active',
+            this.ticTacToe.fieldSize <= 10 ? 'game-field__cell_active' : null,
             `game-field__cell_active-${player.getSymbol()}`
         );
 
@@ -471,7 +441,6 @@ class GameUI {
             winResult = this.ticTacToe.makeMove(Number(cell.dataset.index));
         } catch (error) {
             if (error instanceof WrongMoveError) {
-                console.log(error.message);
                 return;
             } else {
                 throw error;
@@ -501,6 +470,8 @@ class GameUI {
     }
 
     renderGameField(size) {
+        const start = performance.now();
+
         this.gameItems.gameField.innerHTML = '';
         this.gameItems.gameField.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
         this.ticTacToe = new TicTacToe(
@@ -518,6 +489,9 @@ class GameUI {
                 this.handleCellClick(cell);
             }
         });
+
+        const end = performance.now();
+        console.log(`Field generated in: ${(end - start).toFixed(2)} ms`);
     }
 
     resetGameUI() {
@@ -565,30 +539,24 @@ const localStorageManager = new LocalStorageManager(scoreBoard);
 const gameUI = new GameUI(ticTacToe, gameItems, localStorageManager);
 
 gameUI.initializeGame();
-gameUI.updateButtonStates();
-
-gameItems.increaseButton.addEventListener('click', () => {
-    if (gameFieldSize < 7) {
-        gameFieldSize++;
-        gameUI.initializeGame(gameFieldSize);
-        gameUI.updateButtonStates();
-    }
-});
-
-gameItems.decreaseButton.addEventListener('click', () => {
-    if (gameFieldSize > 3) {
-        gameFieldSize--;
-        gameUI.initializeGame(gameFieldSize);
-        gameUI.updateButtonStates();
-    }
-});
 
 gameItems.applyFieldSizeButton.addEventListener('click', () => {
     const inputValue = parseInt(gameItems.fieldSizeInput.value, 10);
     if (inputValue >= 3 && inputValue <= 100) {
         gameFieldSize = inputValue;
         gameUI.initializeGame(gameFieldSize);
-        gameUI.updateButtonStates();
+
+        if (inputValue > 10) {
+            gameItems.gameField.classList.add('game-field_large');
+            gameItems.game.classList.add('game_large');
+            gameItems.page.style.setProperty('height', 'auto');
+            gameItems.page.style.setProperty('padding', '40px 0 40px 0');
+        } else {
+            gameItems.page.style.setProperty('height', '100%');
+            gameItems.page.style.setProperty('padding', '0');
+            gameItems.gameField.classList.remove('game-field_large');
+            gameItems.game.classList.remove('game_large');
+        }
     } else {
         alert('Please enter a field size between 3 and 100.');
     }
