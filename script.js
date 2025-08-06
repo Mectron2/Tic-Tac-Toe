@@ -119,6 +119,7 @@ class TicTacToe {
         this.scoreBoard = scoreBoard;
         this.currentPlayer = this.firstPlayer;
         this.isOver = false;
+        this.emptyCells = fieldSize ** 2;
 
         this.counts = {
             [firstPlayer.getSymbol()]: {
@@ -217,7 +218,7 @@ class TicTacToe {
             return { winner: this.currentPlayer, combination: combo };
         }
 
-        if (!this.board.includes(null)) {
+        if (this.emptyCells === 0) {
             this.isOver = true;
             this.scoreBoard.incrementDrawScore();
             return { winner: 'Draw', combination: null };
@@ -242,6 +243,11 @@ class TicTacToe {
         }
 
         this.board[position] = this.currentPlayer;
+        this.emptyCells--;
+        console.log(
+            `Player ${this.currentPlayer.getSymbol()} made a move at position ${position}`
+        );
+        console.log('Empty cells left:', this.emptyCells);
 
         const winResult = this.checkForWin(position);
 
@@ -260,6 +266,7 @@ class TicTacToe {
         this.currentPlayer = this.firstPlayer;
         this.isOver = false;
         this.resetCounts();
+        this.emptyCells = this.fieldSize ** 2;
     }
 
     getCurrentPlayer() {
