@@ -109,9 +109,12 @@ const secondPlayer = new Player(PLAYERS_SYMBOLS.secondPlayerSymbol, 0);
 const scoreBoard = new ScoreBoard(firstPlayer, secondPlayer);
 
 class TicTacToe {
-    constructor(fieldSize = 3) {
+    constructor(fieldSize = 3, firstPlayer, secondPlayer, scoreBoard) {
         this.board = Array(fieldSize ** 2).fill(null);
-        this.currentPlayer = firstPlayer;
+        this.firstPlayer = firstPlayer;
+        this.secondPlayer = secondPlayer;
+        this.scoreBoard = scoreBoard;
+        this.currentPlayer = this.firstPlayer;
         this.WINNING_COMBINATIONS = this.generateWinningCombinations(fieldSize);
         this.isOver = false;
     }
@@ -171,7 +174,9 @@ class TicTacToe {
 
         this.board[position] = this.currentPlayer;
         this.currentPlayer =
-            this.currentPlayer === firstPlayer ? secondPlayer : firstPlayer;
+            this.currentPlayer === this.firstPlayer
+                ? this.secondPlayer
+                : this.firstPlayer;
 
         return true;
     }
@@ -188,7 +193,7 @@ class TicTacToe {
                 )
             ) {
                 this.isOver = true;
-                scoreBoard.incrementPlayerScore(firstPlayerInCombo);
+                this.scoreBoard.incrementPlayerScore(firstPlayerInCombo);
 
                 return {
                     winner: firstPlayerInCombo,
@@ -199,7 +204,7 @@ class TicTacToe {
 
         if (this.board.every((cell) => cell !== null)) {
             this.isOver = true;
-            scoreBoard.incrementDrawScore();
+            this.scoreBoard.incrementDrawScore();
 
             return { winner: 'Draw', combination: null };
         }
@@ -209,45 +214,59 @@ class TicTacToe {
 
     resetGame() {
         this.board.fill(null);
-        this.currentPlayer = firstPlayer;
+        this.currentPlayer = this.firstPlayer;
         this.isOver = false;
     }
 
     getCurrentPlayer() {
         return this.currentPlayer;
     }
+
+    saveScores() {
+        const scores = this.scoreBoard.getScores();
+
+        localStorage.setItem('firstPlayerScore', scores.firstPlayerScore);
+        localStorage.setItem('secondPlayerScore', scores.secondPlayerScore);
+        localStorage.setItem('drawScore', scores.drawScore);
+    }
+
+    syncScores() {
+        const rawFirst = localStorage.getItem('firstPlayerScore');
+        const rawSecond = localStorage.getItem('secondPlayerScore');
+        const rawDraw = localStorage.getItem('drawScore');
+
+        const firstScore = rawFirst !== null ? parseInt(rawFirst, 10) : 0;
+        const secondScore = rawSecond !== null ? parseInt(rawSecond, 10) : 0;
+        const drawCount = rawDraw !== null ? parseInt(rawDraw, 10) : 0;
+
+        console.log('Syncing scores:', {
+            firstPlayerScore: firstScore,
+            secondPlayerScore: secondScore,
+            drawScore: drawCount,
+        });
+
+        console.log(scoreBoard);
+
+        this.scoreBoard.setScores(firstScore, secondScore, drawCount);
+    }
+
+    resetScores() {
+        this.scoreBoard.resetScores();
+        this.saveScores();
+    }
 }
 
-function saveScore() {
-    const scores = scoreBoard.getScores();
-
-    localStorage.setItem('firstPlayerScore', scores.firstPlayerScore);
-    localStorage.setItem('secondPlayerScore', scores.secondPlayerScore);
-    localStorage.setItem('drawScore', scores.drawScore);
+function syncScoresUI(ticTacToeInstance) {
+    const scores = ticTacToeInstance.scoreBoard.getScores();
+    gameItems.firstPlayerScore.innerText = scores.firstPlayerScore;
+    gameItems.secondPlayerScore.innerText = scores.secondPlayerScore;
+    gameItems.drawScore.innerText = scores.drawScore;
 }
 
-function syncScore() {
-    const rawFirst = localStorage.getItem('firstPlayerScore');
-    const rawSecond = localStorage.getItem('secondPlayerScore');
-    const rawDraw = localStorage.getItem('drawScore');
-
-    const firstScore = rawFirst !== null ? parseInt(rawFirst, 10) : 0;
-    const secondScore = rawSecond !== null ? parseInt(rawSecond, 10) : 0;
-    const drawCount = rawDraw !== null ? parseInt(rawDraw, 10) : 0;
-
-    scoreBoard.setScores(firstScore, secondScore, drawCount);
-
-    gameItems.firstPlayerScore.innerText = firstScore;
-    gameItems.secondPlayerScore.innerText = secondScore;
-    gameItems.drawScore.innerText = drawCount;
-}
-
-function resetScore() {
+function resetScoresUI() {
     gameItems.firstPlayerScore.innerText = '0';
     gameItems.secondPlayerScore.innerText = '0';
     gameItems.drawScore.innerText = '0';
-    scoreBoard.resetScores();
-    saveScore();
 }
 
 function updatePlayerIcon(player) {
@@ -326,7 +345,7 @@ function renderMove(cell, player) {
     cell.appendChild(svg);
 }
 
-function handleGameEnd(result) {
+function handleGameEnd(result, ticTacToeInstance) {
     if (result.winner === 'Draw') {
         updatePlayerIcon(null);
         updateStatusUI('draw');
@@ -338,7 +357,7 @@ function handleGameEnd(result) {
         incrementScoreUI(result.winner);
     }
 
-    saveScore();
+    ticTacToeInstance.saveScores();
 }
 
 function handleCellClick(cell) {
@@ -354,7 +373,7 @@ function handleCellClick(cell) {
 
     const result = ticTacToe.checkWinner();
 
-    if (result) handleGameEnd(result);
+    if (result) handleGameEnd(result, ticTacToe);
 }
 
 function initGameInfo() {
@@ -375,7 +394,7 @@ function initGameInfo() {
 function renderGameField(size) {
     gameItems.gameField.innerHTML = '';
     gameItems.gameField.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-    ticTacToe = new TicTacToe(size);
+    ticTacToe = new TicTacToe(size, firstPlayer, secondPlayer, scoreBoard);
     ticTacToe.generateGameField(size);
 
     const cells = gameItems.gameField.querySelectorAll(SELECTORS.gameFieldCell);
@@ -411,7 +430,12 @@ function initializeGame() {
 }
 
 let GAME_FIELD_SIZE = 3;
-let ticTacToe = new TicTacToe(GAME_FIELD_SIZE);
+let ticTacToe = new TicTacToe(
+    GAME_FIELD_SIZE,
+    firstPlayer,
+    secondPlayer,
+    scoreBoard
+);
 initializeGame();
 updateButtonStates();
 
@@ -443,11 +467,15 @@ gameItems.decreaseButton.addEventListener('click', () => {
 });
 
 gameItems.resetButton.addEventListener('click', resetGame);
-window.addEventListener('DOMContentLoaded', syncScore);
+window.addEventListener('DOMContentLoaded', () => {
+    ticTacToe.syncScores();
+    syncScoresUI(ticTacToe);
+});
 
 gameItems.scoreList.addEventListener('click', () => {
     const isConfirmed = confirm('Are you sure you want to reset the score?');
     if (isConfirmed) {
-        resetScore();
+        ticTacToe.resetScores();
+        resetScoresUI();
     }
 });
