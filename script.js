@@ -168,7 +168,7 @@ class TicTacToe {
         return Array.from({ length: size }, (_, i) => (i + 1) * (size - 1));
     }
 
-    checkForWin(position) {
+    checkForWinMaxLength(position) {
         const symbol = this.currentPlayer.getSymbol();
         const counters = this.counts[symbol];
         const size = this.fieldSize;
@@ -220,6 +220,60 @@ class TicTacToe {
 
         return null;
     }
+    checkWinnerFromLastMove(gameField, fieldSize, winLength, lastMoveIndex) {
+        const currentSymbol = this.currentPlayer.getSymbol();
+
+        const lastMoveRow = Math.floor(lastMoveIndex / fieldSize);
+        const lastMoveCol = lastMoveIndex % fieldSize;
+
+        const directions = [
+            [0, 1], // →
+            [1, 0], // ↓
+            [1, 1], // ↘
+            [1, -1], // ↙
+        ];
+
+        function collectPositions(rowStep, colStep) {
+            const positions = [];
+            let currentRow = lastMoveRow + rowStep;
+            let currentCol = lastMoveCol + colStep;
+
+            while (
+                currentRow >= 0 &&
+                currentRow < fieldSize &&
+                currentCol >= 0 &&
+                currentCol < fieldSize &&
+                gameField[currentRow * fieldSize + currentCol]?.getSymbol() ===
+                    currentSymbol
+            ) {
+                positions.push(currentRow * fieldSize + currentCol);
+                currentRow += rowStep;
+                currentCol += colStep;
+            }
+            return positions;
+        }
+
+        for (const [rowStep, colStep] of directions) {
+            const forwardPositions = collectPositions(rowStep, colStep);
+            const backwardPositions = collectPositions(-rowStep, -colStep);
+
+            const totalInLine =
+                1 + forwardPositions.length + backwardPositions.length;
+
+            if (totalInLine >= winLength) {
+                return {
+                    winner: this.currentPlayer,
+                    combination: [
+                        lastMoveIndex,
+                        ...forwardPositions,
+                        ...backwardPositions,
+                    ],
+                };
+            }
+        }
+
+        return null;
+    }
 
     makeMove(position) {
         const maxIndex = this.board.length - 1;
@@ -239,7 +293,13 @@ class TicTacToe {
         this.board[position] = this.currentPlayer;
         this.emptyCells--;
 
-        const winResult = this.checkForWin(position);
+        const winResult = this.checkWinnerFromLastMove(
+            this.board,
+            this.fieldSize,
+            3,
+            position
+        );
+        // const winResult = this.checkForWinMaxLength(position);
 
         if (winResult) {
             return winResult;
