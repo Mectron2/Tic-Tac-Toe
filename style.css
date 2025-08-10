@@ -245,6 +245,7 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-direction: column;
     gap: 20px;
 }
 
@@ -257,12 +258,31 @@ html, body {
     box-shadow: inset 0 -4px 0 var(--gray);
 }
 
+.game__control__combo-to-win-input {
+    width: 70%;
+    height: 2.4rem;
+    border-radius: 8px;
+    border: none;
+    padding-left: 20px;
+    box-shadow: inset 0 -4px 0 var(--gray);
+}
+
+.button_apply-combo-to-win {
+    width: 30%;
+}
+
 .button_apply-field-size {
     width: 30%;
 }
 
 .button__text {
     font-weight: 900;
+}
+
+.game__control-field-size, .game__control-combo-to-win {
+    width: 100%;
+    display: flex;
+    gap: 1rem;
 }
 
 @media (max-width: 650px) {

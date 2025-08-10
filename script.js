@@ -16,10 +16,13 @@ const gameItems = {
     scoreList: document.querySelector('.game-score__list'),
     applyFieldSizeButton: document.querySelector('.button_apply-field-size'),
     game: document.querySelector('.game'),
-
-    get fieldSizeInput() {
-        return document.querySelector('.game__control__field-size-input');
-    },
+    gameFieldSizeInput: document.querySelector(
+        '.game__control__field-size-input'
+    ),
+    comboToWinInput: document.querySelector(
+        '.game__control__combo-to-win-input'
+    ),
+    applyComboToWinButton: document.querySelector('.button_apply-combo-to-win'),
 
     get currentPlayerIcon() {
         return document.querySelector('.game-info__status-player-icon');
@@ -100,7 +103,14 @@ class ScoreBoard {
 class WrongMoveError extends Error {
     constructor(message) {
         super(message);
-        this.name = 'WrongMoveError';
+        this.name = WrongMoveError.name;
+    }
+}
+
+class WrongComboLengthError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = WrongComboLengthError.name;
     }
 }
 
@@ -114,6 +124,7 @@ class TicTacToe {
         this.currentPlayer = this.firstPlayer;
         this.isOver = false;
         this.emptyCells = fieldSize ** 2;
+        this.winComboLength = this.fieldSize;
 
         this.counts = {
             [firstPlayer.getSymbol()]: {
@@ -129,6 +140,15 @@ class TicTacToe {
                 anti: 0,
             },
         };
+    }
+
+    setWinComboLength(length) {
+        if (length < 3 || length > this.fieldSize) {
+            throw new WrongComboLengthError(
+                'Invalid win combo length. Must be between 3 and field size.'
+            );
+        }
+        this.winComboLength = length;
     }
 
     resetCounts() {
@@ -220,7 +240,8 @@ class TicTacToe {
 
         return null;
     }
-    checkWinnerFromLastMove(gameField, fieldSize, winLength, lastMoveIndex) {
+
+    checkForWin(gameField, fieldSize, winLength, lastMoveIndex) {
         const currentSymbol = this.currentPlayer.getSymbol();
 
         const lastMoveRow = Math.floor(lastMoveIndex / fieldSize);
@@ -293,13 +314,15 @@ class TicTacToe {
         this.board[position] = this.currentPlayer;
         this.emptyCells--;
 
-        const winResult = this.checkWinnerFromLastMove(
-            this.board,
-            this.fieldSize,
-            3,
-            position
-        );
-        // const winResult = this.checkForWinMaxLength(position);
+        const winResult =
+            this.winComboLength === this.fieldSize
+                ? this.checkForWinMaxLength(position)
+                : this.checkForWin(
+                      this.board,
+                      this.fieldSize,
+                      this.winComboLength,
+                      position
+                  );
 
         if (winResult) {
             return winResult;
@@ -474,6 +497,8 @@ class GameUI {
     }
 
     handleGameEnd(result) {
+        this.ticTacToe.isOver = true;
+
         if (result.winner === 'Draw') {
             this.updatePlayerIcon(null);
             this.updateStatusUI('draw');
@@ -601,7 +626,7 @@ const gameUI = new GameUI(ticTacToe, gameItems, localStorageManager);
 gameUI.initializeGame();
 
 gameItems.applyFieldSizeButton.addEventListener('click', () => {
-    const inputValue = parseInt(gameItems.fieldSizeInput.value, 10);
+    const inputValue = parseInt(gameItems.gameFieldSizeInput.value, 10);
     if (inputValue >= 3 && inputValue <= 100) {
         gameFieldSize = inputValue;
         gameUI.initializeGame(gameFieldSize);
@@ -636,5 +661,19 @@ gameItems.scoreList.addEventListener('click', () => {
     if (isConfirmed) {
         localStorageManager.resetScores();
         gameUI.resetScoresUI();
+    }
+});
+
+gameItems.applyComboToWinButton.addEventListener('click', () => {
+    const inputValue = parseInt(gameItems.comboToWinInput.value, 10);
+
+    try {
+        gameUI.ticTacToe.setWinComboLength(inputValue);
+    } catch (error) {
+        if (error instanceof WrongComboLengthError) {
+            alert(error.message);
+        } else {
+            throw error;
+        }
     }
 });
