@@ -239,14 +239,39 @@ html, body {
     filter: brightness(1.2);
 }
 
-.game__control {
-    border-radius: 40px;
+.game__control-modal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+}
+
+.game__control-modal-content {
+    border-radius: 10px;
+    width: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
     gap: 20px;
+    position: absolute;
+    background-color: var(--primary-color);
+    padding: 50px;
+}
+
+.game__control-modal_active {
+    opacity: 1;
+    pointer-events: all;
 }
 
 .game__control__field-size-input {
@@ -283,6 +308,10 @@ html, body {
     width: 100%;
     display: flex;
     gap: 1rem;
+}
+
+.button_settings {
+    width: 100%;
 }
 
 @media (max-width: 650px) {

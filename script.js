@@ -16,6 +16,7 @@ const gameItems = {
     scoreList: document.querySelector('.game-score__list'),
     applyFieldSizeButton: document.querySelector('.button_apply-field-size'),
     game: document.querySelector('.game'),
+    settingsPanel: document.querySelector('.game__control-modal'),
     gameFieldSizeInput: document.querySelector(
         '.game__control__field-size-input'
     ),
@@ -23,6 +24,8 @@ const gameItems = {
         '.game__control__combo-to-win-input'
     ),
     applyComboToWinButton: document.querySelector('.button_apply-combo-to-win'),
+    settingsButton: document.querySelector('.button_settings'),
+    modalOverlay: document.querySelector('.game__control-modal'),
 
     get currentPlayerIcon() {
         return document.querySelector('.game-info__status-player-icon');
@@ -627,23 +630,31 @@ gameUI.initializeGame();
 
 gameItems.applyFieldSizeButton.addEventListener('click', () => {
     const inputValue = parseInt(gameItems.gameFieldSizeInput.value, 10);
-    if (inputValue >= 3 && inputValue <= 100) {
-        gameFieldSize = inputValue;
-        gameUI.initializeGame(gameFieldSize);
 
-        if (inputValue > 10) {
-            gameItems.gameField.classList.add('game-field_large');
-            gameItems.game.classList.add('game_large');
-            gameItems.page.style.setProperty('height', 'auto');
-            gameItems.page.style.setProperty('padding', '40px 0 40px 0');
+    if (
+        gameUI.ticTacToe.emptyCells === gameUI.ticTacToe.fieldSize ** 2 ||
+        gameUI.ticTacToe.isOver
+    ) {
+        if (inputValue >= 3 && inputValue <= 100) {
+            gameFieldSize = inputValue;
+            gameUI.initializeGame(gameFieldSize);
+
+            if (inputValue > 10) {
+                gameItems.gameField.classList.add('game-field_large');
+                gameItems.game.classList.add('game_large');
+                gameItems.page.style.setProperty('height', 'auto');
+                gameItems.page.style.setProperty('padding', '40px 0 40px 0');
+            } else {
+                gameItems.page.style.setProperty('height', '100%');
+                gameItems.page.style.setProperty('padding', '0');
+                gameItems.gameField.classList.remove('game-field_large');
+                gameItems.game.classList.remove('game_large');
+            }
         } else {
-            gameItems.page.style.setProperty('height', '100%');
-            gameItems.page.style.setProperty('padding', '0');
-            gameItems.gameField.classList.remove('game-field_large');
-            gameItems.game.classList.remove('game_large');
+            alert('Please enter a field size between 3 and 100.');
         }
     } else {
-        alert('Please enter a field size between 3 and 100.');
+        alert('Please finish the current game before changing the field size.');
     }
 });
 
@@ -667,13 +678,32 @@ gameItems.scoreList.addEventListener('click', () => {
 gameItems.applyComboToWinButton.addEventListener('click', () => {
     const inputValue = parseInt(gameItems.comboToWinInput.value, 10);
 
-    try {
-        gameUI.ticTacToe.setWinComboLength(inputValue);
-    } catch (error) {
-        if (error instanceof WrongComboLengthError) {
-            alert(error.message);
-        } else {
-            throw error;
+    if (
+        gameUI.ticTacToe.emptyCells === gameUI.ticTacToe.fieldSize ** 2 ||
+        gameUI.ticTacToe.isOver
+    ) {
+        try {
+            gameUI.ticTacToe.setWinComboLength(inputValue);
+        } catch (error) {
+            if (error instanceof WrongComboLengthError) {
+                alert(error.message);
+            } else {
+                throw error;
+            }
         }
+    } else {
+        alert(
+            'Please finish the current game before changing the combo length.'
+        );
+    }
+});
+
+gameItems.settingsButton.addEventListener('click', () => {
+    gameItems.settingsPanel.classList.toggle('game__control-modal_active');
+});
+
+gameItems.modalOverlay.addEventListener('click', (e) => {
+    if (e.target === gameItems.modalOverlay) {
+        gameItems.modalOverlay.classList.remove('game__control-modal_active');
     }
 });
