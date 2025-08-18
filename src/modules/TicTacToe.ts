@@ -1,7 +1,33 @@
 import { WrongComboLengthError, WrongMoveError } from './Exceptions.js';
+import type { Player } from './Player.js';
+import type { ScoreBoard } from './ScoreBoard.js';
+import type GameResult from './GameResult.js';
 
 export class TicTacToe {
-    constructor(fieldSize = 3, firstPlayer, secondPlayer, scoreBoard) {
+    private readonly fieldSize: number;
+    private readonly board: any[];
+    private readonly firstPlayer: any;
+    private readonly secondPlayer: any;
+    private readonly scoreBoard: any;
+    private currentPlayer: any;
+    private isOver: boolean;
+    private emptyCells: number;
+    private winComboLength: number;
+    private counts: {
+        [p: number]: {
+            rows: number[];
+            cols: number[];
+            diag: number;
+            anti: number;
+        };
+    };
+
+    constructor(
+        fieldSize = 3,
+        firstPlayer: Player,
+        secondPlayer: Player,
+        scoreBoard: ScoreBoard
+    ) {
         this.fieldSize = fieldSize;
         this.board = Array(fieldSize ** 2).fill(null);
         this.firstPlayer = firstPlayer;
@@ -28,7 +54,7 @@ export class TicTacToe {
         };
     }
 
-    setWinComboLength(length) {
+    setWinComboLength(length: number): void {
         if (length < 3 || length > this.fieldSize) {
             throw new WrongComboLengthError(
                 'Invalid win combo length. Must be between 3 and field size.'
@@ -37,7 +63,7 @@ export class TicTacToe {
         this.winComboLength = length;
     }
 
-    resetCounts() {
+    resetCounts(): void {
         this.counts = {
             [this.firstPlayer.getSymbol()]: {
                 rows: Array(this.fieldSize).fill(0),
@@ -54,36 +80,36 @@ export class TicTacToe {
         };
     }
 
-    _generateWinIndexesForRow(row) {
+    _generateWinIndexesForRow(row: number): number[] {
         const size = this.fieldSize;
         return Array.from({ length: size }, (_, col) => row * size + col);
     }
 
-    _generateWinIndexesForCol(col) {
+    _generateWinIndexesForCol(col: number): number[] {
         const size = this.fieldSize;
         return Array.from({ length: size }, (_, row) => row * size + col);
     }
 
-    _generateWinIndexesForDiag() {
+    _generateWinIndexesForDiag(): number[] {
         const size = this.fieldSize;
         return Array.from({ length: size }, (_, i) => i * (size + 1));
     }
 
-    _generateWinIndexesForAntiDiag() {
+    _generateWinIndexesForAntiDiag(): number[] {
         const size = this.fieldSize;
         return Array.from({ length: size }, (_, i) => (i + 1) * (size - 1));
     }
 
-    checkForWinMaxLength(position) {
+    checkForWinMaxLength(position: number): GameResult | null {
         const symbol = this.currentPlayer.getSymbol();
-        const counters = this.counts[symbol];
+        const counters = this.counts[symbol]!;
         const size = this.fieldSize;
 
         const row = Math.floor(position / size);
         const col = position % size;
 
-        counters.rows[row]++;
-        counters.cols[col]++;
+        counters.rows[row]!++;
+        counters.cols[col]!++;
         if (row === col) {
             counters.diag++;
         }
@@ -98,7 +124,7 @@ export class TicTacToe {
         const isAntiWin = counters.anti === size;
 
         if (isRowWin || isColWin || isDiagWin || isAntiWin) {
-            let combo;
+            let combo: number[] | null = null;
 
             if (isRowWin) {
                 combo = this._generateWinIndexesForRow(row);
@@ -125,20 +151,25 @@ export class TicTacToe {
         return null;
     }
 
-    checkForWin(gameField, fieldSize, winLength, lastMoveIndex) {
+    checkForWin(
+        gameField: Player[],
+        fieldSize: number,
+        winLength: number,
+        lastMoveIndex: number
+    ): GameResult | null {
         const currentSymbol = this.currentPlayer.getSymbol();
 
         const lastMoveRow = Math.floor(lastMoveIndex / fieldSize);
         const lastMoveCol = lastMoveIndex % fieldSize;
 
-        const directions = [
+        const directions: [number, number][] = [
             [0, 1], // →
             [1, 0], // ↓
             [1, 1], // ↘
             [1, -1], // ↙
         ];
 
-        function collectPositions(rowStep, colStep) {
+        function collectPositions(rowStep: number, colStep: number): number[] {
             const positions = [];
             let currentRow = lastMoveRow + rowStep;
             let currentCol = lastMoveCol + colStep;
@@ -180,7 +211,7 @@ export class TicTacToe {
         return null;
     }
 
-    makeMove(position) {
+    makeMove(position: number): GameResult | null {
         const maxIndex = this.board.length - 1;
 
         if (this.board[position] !== null) {
@@ -216,9 +247,11 @@ export class TicTacToe {
             this.currentPlayer === this.firstPlayer
                 ? this.secondPlayer
                 : this.firstPlayer;
+
+        return null;
     }
 
-    resetGame() {
+    resetGame(): void {
         this.board.fill(null);
         this.currentPlayer = this.firstPlayer;
         this.isOver = false;
@@ -226,7 +259,35 @@ export class TicTacToe {
         this.emptyCells = this.fieldSize ** 2;
     }
 
-    getCurrentPlayer() {
+    getCurrentPlayer(): Player {
         return this.currentPlayer;
+    }
+
+    getScoreBoard(): ScoreBoard {
+        return this.scoreBoard;
+    }
+
+    getFirstPlayer(): Player {
+        return this.firstPlayer;
+    }
+
+    getSecondPlayer(): Player {
+        return this.secondPlayer;
+    }
+
+    getFieldSize(): number {
+        return this.fieldSize;
+    }
+
+    setIsOver(isOver: boolean): void {
+        this.isOver = isOver;
+    }
+
+    getIsOver(): boolean {
+        return this.isOver;
+    }
+
+    getEmptyCells(): number {
+        return this.emptyCells;
     }
 }

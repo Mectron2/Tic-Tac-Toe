@@ -1,17 +1,27 @@
+import type { ScoreBoard } from './ScoreBoard.js';
+
 export class LocalStorageManager {
-    constructor(scoreBoard) {
+    private scoreBoard: ScoreBoard;
+
+    constructor(scoreBoard: ScoreBoard) {
         this.scoreBoard = scoreBoard;
     }
 
-    saveScores() {
+    saveScores(): void {
         const scores = this.scoreBoard.getScores();
 
-        localStorage.setItem('firstPlayerScore', scores.firstPlayerScore);
-        localStorage.setItem('secondPlayerScore', scores.secondPlayerScore);
-        localStorage.setItem('drawScore', scores.drawScore);
+        localStorage.setItem(
+            'firstPlayerScore',
+            String(scores.firstPlayerScore)
+        );
+        localStorage.setItem(
+            'secondPlayerScore',
+            String(scores.secondPlayerScore)
+        );
+        localStorage.setItem('drawScore', String(scores.drawScore));
     }
 
-    syncScores() {
+    syncScores(): void {
         const rawFirst = localStorage.getItem('firstPlayerScore');
         const rawSecond = localStorage.getItem('secondPlayerScore');
         const rawDraw = localStorage.getItem('drawScore');
@@ -23,7 +33,7 @@ export class LocalStorageManager {
         this.scoreBoard.setScores(firstScore, secondScore, drawCount);
     }
 
-    resetScores() {
+    resetScores(): void {
         this.scoreBoard.resetScores();
         this.saveScores();
     }

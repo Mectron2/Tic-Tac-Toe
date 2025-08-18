@@ -2,15 +2,16 @@
   "name": "tic-tac-toe",
   "version": "1.0.0",
   "description": "",
-  "main": "scripts/script.js",
+  "main": "src/script.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/Mectron2/Tic-Tac-Toe.git"
   },
   "private": true,
+  "type": "module",
   "dependencies": {
     "@eslint/js": "^9.32.0",
     "eslint": "^9.32.0",

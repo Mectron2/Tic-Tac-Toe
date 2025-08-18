@@ -5,33 +5,43 @@ import { LocalStorageManager } from './LocalStorageManager.js';
 import { GameController } from './GameController.js';
 import { WrongComboLengthError } from './Exceptions.js';
 
+function getElement<T extends HTMLElement = HTMLElement>(selector: string): T {
+    const el = document.querySelector(selector);
+    if (!el) throw new Error(`Element not found: ${selector}`);
+    return el as T;
+}
+
 const gameItems = {
-    page: document.querySelector('.page'),
-    gameField: document.querySelector('.game-field'),
-    gameInfoStatus: document.querySelector('.game-info__status'),
-    firstPlayerScore: document.querySelector('.game-score__rounds-count-x'),
-    secondPlayerScore: document.querySelector('.game-score__rounds-count-o'),
-    drawScore: document.querySelector('.game-score__rounds-count-draw'),
-    resetButton: document.querySelector('.button_reset'),
-    scoreList: document.querySelector('.game-score__list'),
-    applyFieldSizeButton: document.querySelector('.button_apply-field-size'),
-    game: document.querySelector('.game'),
-    settingsPanel: document.querySelector('.game__control-modal'),
-    gameFieldSizeInput: document.querySelector(
+    page: getElement<HTMLDivElement>('.page'),
+    gameField: getElement<HTMLDivElement>('.game-field'),
+    gameInfoStatus: getElement<HTMLElement>('.game-info__status'),
+    firstPlayerScore: getElement<HTMLElement>('.game-score__rounds-count-x'),
+    secondPlayerScore: getElement<HTMLElement>('.game-score__rounds-count-o'),
+    drawScore: getElement<HTMLElement>('.game-score__rounds-count-draw'),
+    resetButton: getElement<HTMLButtonElement>('.button_reset'),
+    scoreList: getElement<HTMLElement>('.game-score__list'),
+    applyFieldSizeButton: getElement<HTMLButtonElement>(
+        '.button_apply-field-size'
+    ),
+    game: getElement<HTMLElement>('.game'),
+    settingsPanel: getElement<HTMLElement>('.game__control-modal'),
+    gameFieldSizeInput: getElement<HTMLInputElement>(
         '.game__control__field-size-input'
     ),
-    comboToWinInput: document.querySelector(
+    comboToWinInput: getElement<HTMLInputElement>(
         '.game__control__combo-to-win-input'
     ),
-    applyComboToWinButton: document.querySelector('.button_apply-combo-to-win'),
-    settingsButton: document.querySelector('.button_settings'),
-    modalOverlay: document.querySelector('.game__control-modal'),
+    applyComboToWinButton: getElement<HTMLButtonElement>(
+        '.button_apply-combo-to-win'
+    ),
+    settingsButton: getElement<HTMLButtonElement>('.button_settings'),
+    modalOverlay: getElement<HTMLElement>('.game__control-modal'),
 
-    get currentPlayerIcon() {
+    get currentPlayerIcon(): HTMLElement | null {
         return document.querySelector('.game-info__status-player-icon');
     },
 
-    get infoText() {
+    get infoText(): HTMLElement | null {
         return document.querySelector('.game-info__text');
     },
 };
@@ -39,7 +49,7 @@ const gameItems = {
 const PLAYERS_SYMBOLS = {
     firstPlayerSymbol: 'x',
     secondPlayerSymbol: 'o',
-};
+} as const;
 
 let gameFieldSize = 3;
 
@@ -66,9 +76,9 @@ gameItems.applyFieldSizeButton.addEventListener('click', () => {
     const inputValue = parseInt(gameItems.gameFieldSizeInput.value, 10);
 
     if (
-        gameController.ticTacToe.emptyCells ===
-            gameController.ticTacToe.fieldSize ** 2 ||
-        gameController.ticTacToe.isOver
+        gameController.getTicTacToe().getEmptyCells() ===
+            gameController.getTicTacToe().getFieldSize() ** 2 ||
+        gameController.getTicTacToe().getIsOver()
     ) {
         if (inputValue >= 3 && inputValue <= 100) {
             gameFieldSize = inputValue;
@@ -99,7 +109,7 @@ gameItems.resetButton.addEventListener('click', () => {
 
 window.addEventListener('DOMContentLoaded', () => {
     localStorageManager.syncScores();
-    gameController.syncScoresUI(ticTacToe);
+    gameController.syncScoresUI();
 });
 
 gameItems.scoreList.addEventListener('click', () => {
@@ -114,12 +124,12 @@ gameItems.applyComboToWinButton.addEventListener('click', () => {
     const inputValue = parseInt(gameItems.comboToWinInput.value, 10);
 
     if (
-        gameController.ticTacToe.emptyCells ===
-            gameController.ticTacToe.fieldSize ** 2 ||
-        gameController.ticTacToe.isOver
+        gameController.getTicTacToe().getEmptyCells() ===
+            gameController.getTicTacToe().getFieldSize() ** 2 ||
+        gameController.getTicTacToe().getIsOver()
     ) {
         try {
-            gameController.ticTacToe.setWinComboLength(inputValue);
+            gameController.getTicTacToe().setWinComboLength(inputValue);
         } catch (error) {
             if (error instanceof WrongComboLengthError) {
                 alert(error.message);
@@ -138,7 +148,7 @@ gameItems.settingsButton.addEventListener('click', () => {
     gameItems.settingsPanel.classList.toggle('game__control-modal_active');
 });
 
-gameItems.modalOverlay.addEventListener('click', (e) => {
+gameItems.modalOverlay.addEventListener('click', (e: MouseEvent) => {
     if (e.target === gameItems.modalOverlay) {
         gameItems.modalOverlay.classList.remove('game__control-modal_active');
     }

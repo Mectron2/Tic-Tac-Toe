@@ -1,29 +1,39 @@
 import { TicTacToe } from './TicTacToe.js';
 import { WrongMoveError } from './Exceptions.js';
+import { LocalStorageManager } from './LocalStorageManager.js';
+import type { Player } from './Player.js';
+import type GameResult from './GameResult.js';
 
 export class GameController {
     static SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+    private gameItems: any;
+    private ticTacToe: TicTacToe;
+    private localStorageManager: LocalStorageManager;
 
-    constructor(ticTacToe, gameItems, localStorageManager) {
+    constructor(
+        ticTacToe: TicTacToe,
+        gameItems: any,
+        localStorageManager: LocalStorageManager
+    ) {
         this.gameItems = gameItems;
         this.ticTacToe = ticTacToe;
         this.localStorageManager = localStorageManager;
     }
 
-    syncScoresUI() {
-        const scores = this.ticTacToe.scoreBoard.getScores();
+    syncScoresUI(): void {
+        const scores = this.ticTacToe.getScoreBoard().getScores();
         this.gameItems.firstPlayerScore.innerText = scores.firstPlayerScore;
         this.gameItems.secondPlayerScore.innerText = scores.secondPlayerScore;
         this.gameItems.drawScore.innerText = scores.drawScore;
     }
 
-    resetScoresUI() {
+    resetScoresUI(): void {
         this.gameItems.firstPlayerScore.innerText = '0';
         this.gameItems.secondPlayerScore.innerText = '0';
         this.gameItems.drawScore.innerText = '0';
     }
 
-    updatePlayerIcon(player) {
+    updatePlayerIcon(player: Player | null): void {
         const icon = this.gameItems.currentPlayerIcon;
         if (!icon) return;
 
@@ -42,7 +52,7 @@ export class GameController {
         icon.appendChild(svgUseElement);
     }
 
-    updateStatusUI(player, isWin = false) {
+    updateStatusUI(player: Player | string, isWin = false): void {
         const status = this.gameItems.gameInfoStatus;
         status.classList.remove(
             'game-info__status_turn-x',
@@ -51,8 +61,8 @@ export class GameController {
         );
 
         if (
-            player === this.ticTacToe.firstPlayer ||
-            player === this.ticTacToe.secondPlayer
+            player === this.ticTacToe.getFirstPlayer() ||
+            player === this.ticTacToe.getSecondPlayer()
         ) {
             status.classList.add(
                 `game-info__status_turn-${player.getSymbol()}`
@@ -66,11 +76,11 @@ export class GameController {
         }
     }
 
-    incrementScoreUI(player) {
-        if (player === this.ticTacToe.firstPlayer) {
+    incrementScoreUI(player: Player | string): void {
+        if (player === this.ticTacToe.getFirstPlayer()) {
             this.gameItems.firstPlayerScore.innerText =
                 parseInt(this.gameItems.firstPlayerScore.innerText) + 1;
-        } else if (player === this.ticTacToe.secondPlayer) {
+        } else if (player === this.ticTacToe.getSecondPlayer()) {
             this.gameItems.secondPlayerScore.innerText =
                 parseInt(this.gameItems.secondPlayerScore.innerText) + 1;
         } else {
@@ -79,7 +89,7 @@ export class GameController {
         }
     }
 
-    highlightWinningCells(combo, winner) {
+    highlightWinningCells(combo: number[], winner: Player): void {
         const cells =
             this.gameItems.gameField.querySelectorAll('.game-field__cell');
 
@@ -90,15 +100,17 @@ export class GameController {
         );
     }
 
-    generateGameField(fieldSize) {
+    generateGameField(fieldSize: number): void {
         const fieldFragment = document.createDocumentFragment();
 
         for (let i = 0; i < fieldSize ** 2; i++) {
             const cell = document.createElement('div');
-            cell.classList.add(
-                'game-field__cell',
-                this.ticTacToe.fieldSize > 10 ? 'game-field__cell_large' : null
-            );
+            cell.classList.add('game-field__cell');
+
+            if (this.ticTacToe.getFieldSize() > 10) {
+                cell.classList.add('game-field__cell_large');
+            }
+
             cell.dataset.index = String(i);
             fieldFragment.appendChild(cell);
         }
@@ -106,11 +118,12 @@ export class GameController {
         this.gameItems.gameField.appendChild(fieldFragment);
     }
 
-    renderMove(cell, player) {
-        cell.classList.add(
-            this.ticTacToe.fieldSize <= 10 ? 'game-field__cell_active' : null,
-            `game-field__cell_active-${player.getSymbol()}`
-        );
+    renderMove(cell: HTMLElement, player: Player): void {
+        cell.classList.add(`game-field__cell_active-${player.getSymbol()}`);
+
+        if (this.ticTacToe.getFieldSize() <= 10) {
+            cell.classList.add('game-field__cell_active');
+        }
 
         const svg = document.createElementNS(
             GameController.SVG_NAMESPACE,
@@ -130,35 +143,35 @@ export class GameController {
         cell.appendChild(svg);
     }
 
-    handleGameEnd(result) {
-        this.ticTacToe.isOver = true;
+    handleGameEnd(result: GameResult): void {
+        this.ticTacToe.setIsOver(true);
 
-        if (result.winner === 'Draw') {
+        if (result.winner === 'Draw' || !result.combination) {
             this.updatePlayerIcon(null);
             this.updateStatusUI('draw');
             this.incrementScoreUI('draw');
-            this.ticTacToe.scoreBoard.incrementDrawScore();
+            this.ticTacToe.getScoreBoard().incrementDrawScore();
         } else {
             this.updatePlayerIcon(result.winner);
             this.updateStatusUI(result.winner, true);
             this.highlightWinningCells(result.combination, result.winner);
             this.incrementScoreUI(result.winner);
-            this.ticTacToe.scoreBoard.incrementPlayerScore(
-                this.ticTacToe.currentPlayer
-            );
+            this.ticTacToe
+                .getScoreBoard()
+                .incrementPlayerScore(this.ticTacToe.getCurrentPlayer());
         }
 
         this.localStorageManager.saveScores();
     }
 
-    handleCellClick(cell) {
+    handleCellClick(cell: HTMLElement): void {
         const currentPlayer = this.ticTacToe.getCurrentPlayer();
         const nextPlayer =
-            currentPlayer === this.ticTacToe.firstPlayer
-                ? this.ticTacToe.secondPlayer
-                : this.ticTacToe.firstPlayer;
+            currentPlayer === this.ticTacToe.getFirstPlayer()
+                ? this.ticTacToe.getSecondPlayer()
+                : this.ticTacToe.getFirstPlayer();
 
-        let winResult;
+        let winResult: GameResult | null = null;
 
         try {
             winResult = this.ticTacToe.makeMove(Number(cell.dataset.index));
@@ -177,7 +190,7 @@ export class GameController {
         if (winResult) this.handleGameEnd(winResult);
     }
 
-    initGameInfo() {
+    initGameInfo(): void {
         this.gameItems.gameInfoStatus.innerHTML = '';
 
         const svg = document.createElementNS(
@@ -195,37 +208,43 @@ export class GameController {
         this.gameItems.gameInfoStatus.appendChild(text);
     }
 
-    renderGameField(size) {
+    renderGameField(size: number): void {
         const start = performance.now();
 
         this.gameItems.gameField.innerHTML = '';
         this.gameItems.gameField.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
         this.ticTacToe = new TicTacToe(
             size,
-            this.ticTacToe.firstPlayer,
-            this.ticTacToe.secondPlayer,
-            this.ticTacToe.scoreBoard
+            this.ticTacToe.getFirstPlayer(),
+            this.ticTacToe.getSecondPlayer(),
+            this.ticTacToe.getScoreBoard()
         );
 
-        this.generateGameField(this.ticTacToe.fieldSize);
+        this.generateGameField(this.ticTacToe.getFieldSize());
 
-        this.gameItems.gameField.addEventListener('click', (event) => {
-            const cell = event.target.closest('.game-field__cell');
-            if (cell) {
-                this.handleCellClick(cell);
+        this.gameItems.gameField.addEventListener(
+            'click',
+            (event: MouseEvent) => {
+                const target = event.target as HTMLElement | null;
+                const cell = target?.closest(
+                    '.game-field__cell'
+                ) as HTMLElement;
+                if (cell) {
+                    this.handleCellClick(cell);
+                }
             }
-        });
+        );
 
         const end = performance.now();
         console.log(`Field generated in: ${(end - start).toFixed(2)} ms`);
     }
 
-    resetGameUI() {
+    resetGameUI(): void {
         this.ticTacToe.resetGame();
         const cells =
             this.gameItems.gameField.querySelectorAll('.game-field__cell');
 
-        cells.forEach((cell) => {
+        cells.forEach((cell: HTMLElement) => {
             cell.innerHTML = '';
             cell.classList.remove(
                 'game-field__cell_active',
@@ -237,14 +256,18 @@ export class GameController {
         });
 
         this.initGameInfo();
-        this.updatePlayerIcon(this.ticTacToe.firstPlayer);
-        this.updateStatusUI(this.ticTacToe.firstPlayer);
+        this.updatePlayerIcon(this.ticTacToe.getFirstPlayer());
+        this.updateStatusUI(this.ticTacToe.getFirstPlayer());
     }
 
-    initializeGame(fieldSize = this.ticTacToe.fieldSize) {
+    initializeGame(fieldSize = this.ticTacToe.getFieldSize()): void {
         this.renderGameField(fieldSize);
         this.initGameInfo();
-        this.updatePlayerIcon(this.ticTacToe.firstPlayer);
-        this.updateStatusUI(this.ticTacToe.firstPlayer);
+        this.updatePlayerIcon(this.ticTacToe.getFirstPlayer());
+        this.updateStatusUI(this.ticTacToe.getFirstPlayer());
+    }
+
+    getTicTacToe(): TicTacToe {
+        return this.ticTacToe;
     }
 }

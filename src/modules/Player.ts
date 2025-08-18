@@ -1,26 +1,29 @@
 export class Player {
-    constructor(symbol) {
+    private readonly symbol: string;
+    private score: number;
+
+    constructor(symbol: string) {
         this.symbol = symbol;
         this.score = 0;
     }
 
-    getScore() {
+    getScore(): number {
         return this.score;
     }
 
-    getSymbol() {
+    getSymbol(): string {
         return this.symbol;
     }
 
-    incrementScore() {
+    incrementScore(): void {
         this.score++;
     }
 
-    resetScore() {
+    resetScore(): void {
         this.score = 0;
     }
 
-    setScore(score) {
+    setScore(score: number): void {
         this.score = score;
     }
 }
